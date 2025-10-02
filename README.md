@@ -4,12 +4,40 @@ Full-stack monolithic dashboard untuk mengelola daftar tamu undangan pernikahan 
 
 ## 🚀 Cara Penggunaan
 
-### Prasyarat
+### 🌐 Deploy ke VPS (Production)
+
+**PANDUAN LENGKAP BAHASA INDONESIA**: Lihat [INSTALL_VPS_ID.md](INSTALL_VPS_ID.md)
+
+Deploy otomatis ke VPS Ubuntu/Debian dengan satu command:
+
+```bash
+# Login ke VPS
+ssh root@your-vps-ip
+
+# Clone dan deploy
+cd /root && git clone https://github.com/bengkelkayu/dashboard.git && cd dashboard && chmod +x deploy-vps.sh && ./deploy-vps.sh
+```
+
+Script akan otomatis install:
+- ✅ Node.js v18 LTS
+- ✅ PostgreSQL 12+
+- ✅ Redis
+- ✅ Nginx (reverse proxy)
+- ✅ PM2 (process manager)
+
+Dokumentasi deployment:
+- 📖 [INSTALL_VPS_ID.md](INSTALL_VPS_ID.md) - Panduan lengkap Bahasa Indonesia
+- 📖 [DEPLOYMENT_VPS.md](DEPLOYMENT_VPS.md) - VPS deployment guide
+- 📖 [QUICK_REFERENCE.md](QUICK_REFERENCE.md) - Quick command reference
+
+### 💻 Development Setup (Local)
+
+#### Prasyarat
 - Node.js (v14 atau lebih tinggi)
 - PostgreSQL (v12 atau lebih tinggi)
 - Redis (opsional, untuk queue worker)
 
-### Quick Start
+#### Quick Start
 
 ```bash
 # Clone repository
@@ -31,13 +59,13 @@ npm run dev
 
 Server akan berjalan di `http://localhost:3000`
 
-### Instalasi Manual
+### 📚 Dokumentasi
 
-Untuk instruksi instalasi lengkap, lihat [DEVELOPMENT.md](DEVELOPMENT.md)
-
-### Dokumentasi API
-
-Untuk dokumentasi lengkap API endpoints, lihat [API.md](API.md)
+- 🚀 [INSTALL_VPS_ID.md](INSTALL_VPS_ID.md) - Panduan install VPS (Bahasa Indonesia)
+- 📖 [DEPLOYMENT_VPS.md](DEPLOYMENT_VPS.md) - VPS deployment guide
+- 🔧 [DEVELOPMENT.md](DEVELOPMENT.md) - Development guide
+- 📡 [API.md](API.md) - API documentation
+- ⚡ [QUICK_REFERENCE.md](QUICK_REFERENCE.md) - Quick command reference
 
 ## ✨ Fitur
 
