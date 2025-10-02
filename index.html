@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wedding Guest Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎉 Wedding Guest Dashboard</h1>
+            <button id="addGuestBtn" class="btn btn-primary">+ Tambah Tamu</button>
+        </header>
+
+        <div class="search-filter">
+            <input type="text" id="searchInput" placeholder="Cari nama tamu atau nomor WhatsApp...">
+            <select id="filterCategory">
+                <option value="">Semua Kategori</option>
+                <option value="VVIP">VVIP</option>
+                <option value="VIP">VIP</option>
+                <option value="Regular">Regular</option>
+            </select>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalGuests">0</div>
+                <div class="stat-label">Total Tamu</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="vvipCount">0</div>
+                <div class="stat-label">VVIP</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="vipCount">0</div>
+                <div class="stat-label">VIP</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="regularCount">0</div>
+                <div class="stat-label">Regular</div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="guestTable">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Nama</th>
+                        <th>Nomor WhatsApp</th>
+                        <th>Kategori</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="guestTableBody">
+                    <!-- Guest rows will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal Form -->
+    <div id="guestModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Tambah Tamu</h2>
+                <span class="close">&times;</span>
+            </div>
+            <form id="guestForm">
+                <div class="form-group">
+                    <label for="guestName">Nama Tamu *</label>
+                    <input type="text" id="guestName" name="name" required>
+                    <span class="error" id="nameError"></span>
+                </div>
+                <div class="form-group">
+                    <label for="guestPhone">Nomor WhatsApp *</label>
+                    <input type="text" id="guestPhone" name="phone" placeholder="628xxxxxxxxxx" required>
+                    <span class="error" id="phoneError"></span>
+                </div>
+                <div class="form-group">
+                    <label for="guestCategory">Kategori *</label>
+                    <select id="guestCategory" name="category" required>
+                        <option value="">Pilih Kategori</option>
+                        <option value="VVIP">VVIP</option>
+                        <option value="VIP">VIP</option>
+                        <option value="Regular">Regular</option>
+                    </select>
+                    <span class="error" id="categoryError"></span>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
