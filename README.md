@@ -1,11 +1,43 @@
 # Wedding Guest Dashboard
 
-Dashboard untuk mengelola daftar tamu undangan pernikahan dengan sistem kategorisasi VVIP, VIP, dan Regular.
+Full-stack monolithic dashboard untuk mengelola daftar tamu undangan pernikahan dengan sistem kategorisasi VVIP, VIP, dan Regular, dilengkapi dengan tracking kehadiran dan auto thank you message.
 
 ## 🚀 Cara Penggunaan
 
-1. Buka file `index.html` di browser web Anda
-2. Tidak perlu instalasi atau build - menggunakan vanilla JavaScript murni
+### Prasyarat
+- Node.js (v14 atau lebih tinggi)
+- PostgreSQL (v12 atau lebih tinggi)
+- Redis (opsional, untuk queue worker)
+
+### Quick Start
+
+```bash
+# Clone repository
+git clone https://github.com/bengkelkayu/dashboard.git
+cd dashboard
+
+# Run setup script (Linux/Mac)
+chmod +x setup.sh
+./setup.sh
+
+# Or manually install
+npm install
+cp .env.example .env
+# Edit .env with your database configuration
+npm run migrate
+npm run seed  # Optional: seed sample data
+npm run dev
+```
+
+Server akan berjalan di `http://localhost:3000`
+
+### Instalasi Manual
+
+Untuk instruksi instalasi lengkap, lihat [DEVELOPMENT.md](DEVELOPMENT.md)
+
+### Dokumentasi API
+
+Untuk dokumentasi lengkap API endpoints, lihat [API.md](API.md)
 
 ## ✨ Fitur
 
@@ -40,9 +72,28 @@ Dashboard untuk mengelola daftar tamu undangan pernikahan dengan sistem kategori
 - Otomatis update saat tambah/edit/hapus
 
 ### 5. Penyimpanan Data
-- Data tersimpan di localStorage browser
-- Data tidak hilang saat refresh halaman
-- Sudah ada contoh data untuk demo
+- Data tersimpan di PostgreSQL database
+- Persistent dan scalable
+- Support untuk concurrent access
+
+### 6. Attendance Tracking
+- Badge status kehadiran (Presence/Not Presence) otomatis
+- Riwayat check-in untuk setiap tamu
+- Webhook integration dengan Digital Guestbook
+- Summary kehadiran real-time
+
+### 7. Auto Thank You Message
+- Template pesan terima kasih dengan placeholder {nama}, {waktu_checkin}
+- Enable/disable template
+- Queue system untuk pengiriman
+- Retry mechanism untuk failed messages
+- Preview template sebelum digunakan
+
+### 8. Observability & Logging
+- Audit log untuk semua perubahan data penting
+- HTTP request logging
+- Error tracking
+- Metrics kehadiran dan pengiriman pesan
 
 ## 📋 Validasi Form
 
@@ -57,10 +108,25 @@ Dashboard untuk mengelola daftar tamu undangan pernikahan dengan sistem kategori
 
 ## 🎨 Teknologi
 
+### Backend
+- **Node.js** - Runtime JavaScript
+- **Express.js** - Web framework
+- **PostgreSQL** - Relational database
+- **Bull** - Queue management untuk async tasks
+- **Helmet** - Security middleware
+- **Morgan** - HTTP request logger
+
+### Frontend
 - **HTML5** - Struktur halaman
 - **CSS3** - Styling dengan gradient dan animasi
-- **JavaScript (Vanilla)** - Logika aplikasi dan manipulasi DOM
-- **localStorage** - Penyimpanan data lokal
+- **JavaScript (ES6+ Modules)** - Logika aplikasi dan API integration
+
+### Database Schema
+- **guests** - Data tamu (nama, nomor WhatsApp, kategori)
+- **guest_attendance** - Record kehadiran tamu
+- **thank_you_templates** - Template pesan terima kasih
+- **thank_you_outbox** - Queue pengiriman pesan
+- **audit_logs** - Log untuk audit dan observability
 
 ## 📱 Responsive Design
 
@@ -73,10 +139,25 @@ Dashboard responsive dan dapat diakses dari berbagai ukuran layar:
 
 ```
 dashboard/
-├── index.html    # Struktur HTML utama
-├── styles.css    # Styling dan animasi
-├── app.js        # Logika aplikasi JavaScript
-└── README.md     # Dokumentasi
+├── backend/
+│   ├── src/
+│   │   ├── config/          # Konfigurasi database dan environment
+│   │   ├── controllers/     # Business logic untuk setiap endpoint
+│   │   ├── middleware/      # Express middleware (validasi, error handling)
+│   │   ├── models/          # Database models dan query functions
+│   │   ├── routes/          # API route definitions
+│   │   ├── services/        # Business logic services
+│   │   ├── workers/         # Background workers (thank you worker)
+│   │   └── server.js        # Entry point aplikasi
+│   └── migrations/          # Database migration scripts
+├── public/                  # Static frontend files
+│   ├── index.html          # Struktur HTML utama
+│   ├── styles.css          # Styling dan animasi
+│   ├── app.js              # Logika aplikasi frontend
+│   └── api-client.js       # API client untuk komunikasi dengan backend
+├── package.json
+├── .env.example
+└── README.md
 ```
 
 ## 💡 Tips Penggunaan
@@ -96,5 +177,36 @@ Nomor WhatsApp harus dalam format internasional Indonesia:
 ## 🎯 Fitur Keamanan
 
 - XSS Protection: Input di-escape untuk mencegah XSS attack
-- Validasi input yang ketat
-- Konfirmasi sebelum menghapus data
+- Validasi input yang ketat dengan express-validator
+- Helmet.js untuk security headers
+- CORS configuration
+- Webhook signature verification
+- SQL injection protection dengan parameterized queries
+
+## 📡 API Endpoints
+
+### Guests API
+- `GET /api/guests` - Ambil semua data tamu (support filter & search)
+- `GET /api/guests/:id` - Ambil detail tamu termasuk riwayat kehadiran
+- `GET /api/guests/stats` - Statistik jumlah tamu per kategori
+- `POST /api/guests` - Tambah tamu baru
+- `PATCH /api/guests/:id` - Update data tamu
+- `DELETE /api/guests/:id` - Hapus tamu
+
+### Attendance API
+- `GET /api/attendance` - Ambil semua record kehadiran
+- `GET /api/attendance/summary` - Summary kehadiran
+- `POST /api/attendance` - Record check-in baru
+- `PATCH /api/attendance/:id/status` - Update status kehadiran
+
+### Thank You Templates API
+- `GET /api/thank-you` - Ambil semua template
+- `GET /api/thank-you/:id` - Ambil detail template
+- `POST /api/thank-you` - Buat template baru
+- `PATCH /api/thank-you/:id` - Update template
+- `DELETE /api/thank-you/:id` - Hapus template
+- `PATCH /api/thank-you/:id/toggle` - Enable/disable template
+- `POST /api/thank-you/preview` - Preview template dengan sample data
+
+### Webhook API
+- `POST /api/webhook/checkin` - Receive check-in event dari Digital Guestbook

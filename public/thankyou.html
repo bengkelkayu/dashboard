@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thank You Templates - Wedding Guest Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="thankyou.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💌 Thank You Templates</h1>
+            <div class="header-actions">
+                <a href="index.html" class="btn btn-secondary">← Kembali ke Dashboard</a>
+                <button id="addTemplateBtn" class="btn btn-primary">+ Tambah Template</button>
+            </div>
+        </header>
+
+        <div class="templates-list">
+            <div id="templatesContainer">
+                <!-- Templates will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Form -->
+    <div id="templateModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Tambah Template</h2>
+                <span class="close">&times;</span>
+            </div>
+            <form id="templateForm">
+                <div class="form-group">
+                    <label for="templateName">Nama Template *</label>
+                    <input type="text" id="templateName" name="name" required>
+                    <span class="error" id="nameError"></span>
+                </div>
+                <div class="form-group">
+                    <label for="messageTemplate">Pesan Template *</label>
+                    <textarea id="messageTemplate" name="message_template" rows="5" required placeholder="Gunakan {nama} dan {waktu_checkin} sebagai placeholder"></textarea>
+                    <span class="error" id="messageError"></span>
+                    <small class="help-text">
+                        Placeholder yang tersedia:<br>
+                        • {nama} - Nama tamu<br>
+                        • {waktu_checkin} - Waktu check-in tamu
+                    </small>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="isEnabled" name="is_enabled" checked>
+                        Aktifkan template ini
+                    </label>
+                </div>
+                <div class="preview-section">
+                    <h3>Preview:</h3>
+                    <div id="previewMessage" class="preview-box">
+                        Ketik pesan untuk melihat preview...
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm" id="previewBtn">Update Preview</button>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="api-client.js"></script>
+    <script type="module" src="thankyou.js"></script>
+</body>
+</html>
