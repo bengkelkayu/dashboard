@@ -8,6 +8,7 @@
     "start": "node backend/src/server.js",
     "dev": "nodemon backend/src/server.js",
     "migrate": "node backend/migrations/run-migrations.js",
+    "seed": "psql $DATABASE_URL < backend/migrations/seed-sample-data.sql || psql -U $DB_USER -d $DB_NAME < backend/migrations/seed-sample-data.sql",
     "worker": "node backend/src/workers/thankYouWorker.js"
   },
   "keywords": ["wedding", "guest", "dashboard", "attendance"],
