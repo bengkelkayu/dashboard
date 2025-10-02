@@ -1,12 +1,14 @@
+// Import API client
+import { guestAPI, attendanceAPI } from './api-client.js';
+
 // Guest data storage
 let guests = [];
 let editingId = null;
 
-// Load data from localStorage on page load
-document.addEventListener('DOMContentLoaded', () => {
-    loadGuestsFromStorage();
-    renderGuestTable();
-    updateStats();
+// Load data from API on page load
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadGuests();
+    await updateStats();
     setupEventListeners();
 });
 
@@ -73,7 +75,7 @@ function closeModal() {
 }
 
 // Handle form submit
-function handleFormSubmit(e) {
+async function handleFormSubmit(e) {
     e.preventDefault();
 
     const name = document.getElementById('guestName').value.trim();
@@ -89,32 +91,24 @@ function handleFormSubmit(e) {
         return;
     }
 
-    if (editingId) {
-        // Update existing guest
-        const guestIndex = guests.findIndex(g => g.id === editingId);
-        if (guestIndex !== -1) {
-            guests[guestIndex] = {
-                ...guests[guestIndex],
-                name,
-                phone,
-                category
-            };
+    try {
+        const guestData = { name, phone, category };
+        
+        if (editingId) {
+            // Update existing guest
+            await guestAPI.update(editingId, guestData);
+        } else {
+            // Add new guest
+            await guestAPI.create(guestData);
         }
-    } else {
-        // Add new guest
-        const newGuest = {
-            id: Date.now(),
-            name,
-            phone,
-            category
-        };
-        guests.push(newGuest);
-    }
 
-    saveGuestsToStorage();
-    renderGuestTable();
-    updateStats();
-    closeModal();
+        await loadGuests();
+        await updateStats();
+        closeModal();
+    } catch (error) {
+        console.error('Error saving guest:', error);
+        alert('Gagal menyimpan data tamu: ' + error.message);
+    }
 }
 
 // Validation functions
@@ -211,7 +205,7 @@ function renderGuestTable(filteredGuests = null) {
     if (guestsToRender.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5">
+                <td colspan="6">
                     <div class="empty-state">
                         <div class="empty-state-icon">👥</div>
                         <div class="empty-state-text">Belum ada data tamu. Klik "Tambah Tamu" untuk menambahkan.</div>
@@ -222,18 +216,22 @@ function renderGuestTable(filteredGuests = null) {
         return;
     }
 
-    tbody.innerHTML = guestsToRender.map((guest, index) => `
-        <tr>
-            <td>${index + 1}</td>
-            <td>${escapeHtml(guest.name)}</td>
-            <td>${escapeHtml(guest.phone)}</td>
-            <td>${getCategoryBadge(guest.category)}</td>
-            <td>
-                <button class="btn btn-edit" onclick="openEditModal(${guest.id})">Edit</button>
-                <button class="btn btn-delete" onclick="deleteGuest(${guest.id})">Hapus</button>
-            </td>
-        </tr>
-    `).join('');
+    tbody.innerHTML = guestsToRender.map((guest, index) => {
+        const attendanceBadge = getAttendanceBadge(guest.attendance_status);
+        return `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${escapeHtml(guest.name)}</td>
+                <td>${escapeHtml(guest.phone)}</td>
+                <td>${getCategoryBadge(guest.category)}</td>
+                <td>${attendanceBadge}</td>
+                <td>
+                    <button class="btn btn-edit" onclick="openEditModal(${guest.id})">Edit</button>
+                    <button class="btn btn-delete" onclick="deleteGuest(${guest.id})">Hapus</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
 // Get category badge HTML
@@ -246,86 +244,72 @@ function getCategoryBadge(category) {
     return badges[category] || category;
 }
 
+// Get attendance badge HTML
+function getAttendanceBadge(status) {
+    if (status === 'Presence') {
+        return '<span class="attendance-badge presence">✓ Presence</span>';
+    } else {
+        return '<span class="attendance-badge not-presence">✗ Not Presence</span>';
+    }
+}
+
 // Update statistics
-function updateStats() {
-    document.getElementById('totalGuests').textContent = guests.length;
-    document.getElementById('vvipCount').textContent = guests.filter(g => g.category === 'VVIP').length;
-    document.getElementById('vipCount').textContent = guests.filter(g => g.category === 'VIP').length;
-    document.getElementById('regularCount').textContent = guests.filter(g => g.category === 'Regular').length;
+async function updateStats() {
+    try {
+        const response = await guestAPI.getStats();
+        const stats = response.data;
+        document.getElementById('totalGuests').textContent = stats.total || 0;
+        document.getElementById('vvipCount').textContent = stats.vvip_count || 0;
+        document.getElementById('vipCount').textContent = stats.vip_count || 0;
+        document.getElementById('regularCount').textContent = stats.regular_count || 0;
+    } catch (error) {
+        console.error('Error updating stats:', error);
+    }
 }
 
 // Filter guests
-function filterGuests() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+async function filterGuests() {
+    const searchTerm = document.getElementById('searchInput').value.trim();
     const categoryFilter = document.getElementById('filterCategory').value;
 
-    let filtered = guests;
+    try {
+        const filters = {};
+        if (searchTerm) filters.search = searchTerm;
+        if (categoryFilter) filters.category = categoryFilter;
 
-    // Apply search filter
-    if (searchTerm) {
-        filtered = filtered.filter(guest => 
-            guest.name.toLowerCase().includes(searchTerm) ||
-            guest.phone.includes(searchTerm)
-        );
+        const response = await guestAPI.getAll(filters);
+        guests = response.data;
+        renderGuestTable();
+    } catch (error) {
+        console.error('Error filtering guests:', error);
     }
-
-    // Apply category filter
-    if (categoryFilter) {
-        filtered = filtered.filter(guest => guest.category === categoryFilter);
-    }
-
-    renderGuestTable(filtered);
 }
 
 // Delete guest
-function deleteGuest(id) {
+async function deleteGuest(id) {
     if (confirm('Apakah Anda yakin ingin menghapus tamu ini?')) {
-        guests = guests.filter(g => g.id !== id);
-        saveGuestsToStorage();
-        renderGuestTable();
-        updateStats();
-        
-        // If currently filtering, reapply filters
-        const searchTerm = document.getElementById('searchInput').value;
-        const categoryFilter = document.getElementById('filterCategory').value;
-        if (searchTerm || categoryFilter) {
-            filterGuests();
+        try {
+            await guestAPI.delete(id);
+            await loadGuests();
+            await updateStats();
+        } catch (error) {
+            console.error('Error deleting guest:', error);
+            alert('Gagal menghapus tamu: ' + error.message);
         }
     }
 }
 
-// LocalStorage functions
-function saveGuestsToStorage() {
-    localStorage.setItem('weddingGuests', JSON.stringify(guests));
-}
-
-function loadGuestsFromStorage() {
-    const stored = localStorage.getItem('weddingGuests');
-    if (stored) {
-        guests = JSON.parse(stored);
-    } else {
-        // Add sample data for demonstration
-        guests = [
-            {
-                id: 1,
-                name: 'Budi Santoso',
-                phone: '6281234567890',
-                category: 'VVIP'
-            },
-            {
-                id: 2,
-                name: 'Siti Nurhaliza',
-                phone: '6282345678901',
-                category: 'VIP'
-            },
-            {
-                id: 3,
-                name: 'Ahmad Rizki',
-                phone: '6283456789012',
-                category: 'Regular'
-            }
-        ];
-        saveGuestsToStorage();
+// Load guests from API
+async function loadGuests() {
+    try {
+        const response = await guestAPI.getAll();
+        guests = response.data;
+        renderGuestTable();
+    } catch (error) {
+        console.error('Error loading guests:', error);
+        // Show empty state on error
+        guests = [];
+        renderGuestTable();
     }
 }
 
@@ -335,3 +319,7 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// Make functions globally accessible
+window.openEditModal = openEditModal;
+window.deleteGuest = deleteGuest;

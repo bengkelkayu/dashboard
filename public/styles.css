@@ -185,6 +185,27 @@ tbody tr:hover {
     font-size: 14px;
 }
 
+/* Attendance badge */
+.attendance-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.attendance-badge.presence {
+    background: #28a745;
+    color: white;
+}
+
+.attendance-badge.not-presence {
+    background: #6c757d;
+    color: white;
+}
+
 /* Modal Styles */
 .modal {
     display: none;
