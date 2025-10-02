@@ -8,6 +8,20 @@ Panduan lengkap untuk navigasi semua dokumentasi Wedding Guest Dashboard.
 
 ### 1️⃣ Saya Ingin Deploy ke VPS (Recommended untuk Production)
 
+#### ⚡ GitHub Actions (RECOMMENDED - Paling Mudah!)
+
+**👉 START HERE:** [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md) 🚀
+
+Deploy dengan 1 klik via GitHub Actions - **TIDAK PERLU SSH/TERMINAL!**
+
+**Guides:**
+- [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md) - Quick 5-minute setup
+- [GITHUB_ACTIONS_VISUAL_GUIDE.md](GITHUB_ACTIONS_VISUAL_GUIDE.md) - Step-by-step dengan gambar
+- [GITHUB_ACTIONS_DEPLOYMENT_SUMMARY.md](GITHUB_ACTIONS_DEPLOYMENT_SUMMARY.md) - Complete overview
+- [DEPLOYMENT_METHODS_COMPARISON.md](DEPLOYMENT_METHODS_COMPARISON.md) - Comparison semua metode
+
+#### 💻 Manual SSH Deployment
+
 **👉 START HERE:** [INSTALL_VPS_ID.md](INSTALL_VPS_ID.md) 🇮🇩
 
 Panduan lengkap dalam Bahasa Indonesia dengan step-by-step instructions.

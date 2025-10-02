@@ -6,6 +6,23 @@ Full-stack monolithic dashboard untuk mengelola daftar tamu undangan pernikahan 
 
 ### 🌐 Deploy ke VPS (Production)
 
+#### Option 1: GitHub Actions (RECOMMENDED ⚡)
+
+Deploy otomatis dengan 1 klik via GitHub Actions:
+
+1. Setup GitHub Secrets (sekali saja):
+   - `VPS_HOST`: IP server VPS Anda
+   - `VPS_PASSWORD`: Password VPS Anda
+   
+2. Buka tab **Actions** di GitHub
+3. Pilih workflow **Deploy to VPS (Password Auth)**
+4. Klik **Run workflow** > pilih **full** > klik **Run workflow**
+5. Tunggu 5-10 menit, aplikasi langsung live! 🎉
+
+**📖 Panduan lengkap:** [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md)
+
+#### Option 2: Manual SSH Deployment
+
 **PANDUAN LENGKAP BAHASA INDONESIA**: Lihat [INSTALL_VPS_ID.md](INSTALL_VPS_ID.md)
 
 Deploy otomatis ke VPS Ubuntu/Debian dengan satu command:
@@ -26,6 +43,7 @@ Script akan otomatis install:
 - ✅ PM2 (process manager)
 
 Dokumentasi deployment:
+- 🚀 [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md) - **GitHub Actions deployment (RECOMMENDED)**
 - 📖 [INSTALL_VPS_ID.md](INSTALL_VPS_ID.md) - Panduan lengkap Bahasa Indonesia
 - 📖 [DEPLOYMENT_VPS.md](DEPLOYMENT_VPS.md) - VPS deployment guide
 - 📖 [QUICK_REFERENCE.md](QUICK_REFERENCE.md) - Quick command reference
@@ -61,6 +79,7 @@ Server akan berjalan di `http://localhost:3000`
 
 ### 📚 Dokumentasi
 
+- 🚀 [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md) - **GitHub Actions deployment (RECOMMENDED)**
 - 🚀 [INSTALL_VPS_ID.md](INSTALL_VPS_ID.md) - Panduan install VPS (Bahasa Indonesia)
 - 📖 [DEPLOYMENT_VPS.md](DEPLOYMENT_VPS.md) - VPS deployment guide
 - 🔧 [DEVELOPMENT.md](DEVELOPMENT.md) - Development guide
