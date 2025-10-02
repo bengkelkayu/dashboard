@@ -11,6 +11,12 @@
         <header>
             <h1>🎉 Wedding Guest Dashboard</h1>
             <div class="header-actions">
+                <div id="whatsappStatus" class="whatsapp-status">
+                    <span class="status-indicator" id="waStatusIndicator"></span>
+                    <span id="waStatusText">Checking...</span>
+                </div>
+                <button id="waQRBtn" class="btn btn-secondary" style="display: none;">📱 Scan QR</button>
+                <button id="sendAllWABtn" class="btn btn-success">📤 Kirim WA ke Semua</button>
                 <a href="thankyou.html" class="btn btn-secondary">💌 Thank You Templates</a>
                 <button id="addGuestBtn" class="btn btn-primary">+ Tambah Tamu</button>
             </div>
@@ -143,6 +149,66 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- WhatsApp QR Code Modal -->
+    <div id="waQRModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Scan QR Code WhatsApp</h2>
+                <span class="close" onclick="window.closeWAQRModal()">&times;</span>
+            </div>
+            <div style="padding: 20px; text-align: center;">
+                <p>Scan QR code ini dengan WhatsApp Anda:</p>
+                <div id="qrCodeContainer" style="margin: 20px auto;">
+                    <div class="loading">Memuat QR Code...</div>
+                </div>
+                <p style="color: #666; font-size: 14px;">
+                    1. Buka WhatsApp di ponsel Anda<br>
+                    2. Tap Menu atau Settings dan pilih Linked Devices<br>
+                    3. Tap Link a Device<br>
+                    4. Scan QR code ini
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Send WhatsApp Modal -->
+    <div id="bulkWAModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Kirim WhatsApp ke Semua Tamu</h2>
+                <span class="close" onclick="window.closeBulkWAModal()">&times;</span>
+            </div>
+            <form id="bulkWAForm">
+                <div class="form-group">
+                    <label for="bulkCategory">Filter Kategori (Opsional)</label>
+                    <select id="bulkCategory" name="category">
+                        <option value="">Semua Kategori</option>
+                        <option value="VVIP">VVIP</option>
+                        <option value="VIP">VIP</option>
+                        <option value="Regular">Regular</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="bulkTemplate">Template Pesan</label>
+                    <select id="bulkTemplate" name="templateId">
+                        <option value="">-- Pilih Template --</option>
+                    </select>
+                    <small class="help-text">Template akan menggunakan placeholder {nama} dan {waktu_checkin}</small>
+                </div>
+                <div class="preview-section">
+                    <h3>Preview Pesan:</h3>
+                    <div id="bulkPreviewMessage" class="preview-box">
+                        Pilih template untuk melihat preview...
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="window.closeBulkWAModal()">Batal</button>
+                    <button type="submit" class="btn btn-primary">Kirim ke Semua</button>
+                </div>
+            </form>
         </div>
     </div>
 

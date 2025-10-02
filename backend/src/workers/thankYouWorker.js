@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import ThankYouOutbox from '../models/ThankYouOutbox.js';
-import axios from 'axios';
+import whatsappService from '../services/whatsappService.js';
 
 dotenv.config();
 
@@ -55,30 +55,8 @@ class ThankYouWorker {
   }
 
   async sendMessage(message) {
-    const whatsappApiUrl = process.env.WHATSAPP_API_URL;
-    const whatsappApiKey = process.env.WHATSAPP_API_KEY;
-    
-    // If no WhatsApp API is configured, just simulate sending
-    if (!whatsappApiUrl || !whatsappApiKey) {
-      console.log(`[SIMULATED] Sending to ${message.phone}: ${message.message}`);
-      return;
-    }
-    
-    // Send via WhatsApp API
-    const response = await axios.post(whatsappApiUrl, {
-      phone: message.phone,
-      message: message.message
-    }, {
-      headers: {
-        'Authorization': `Bearer ${whatsappApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      timeout: 10000
-    });
-    
-    if (response.status !== 200 && response.status !== 201) {
-      throw new Error(`WhatsApp API returned status ${response.status}`);
-    }
+    // Send via Baileys WhatsApp
+    await whatsappService.sendMessage(message.phone, message.message);
   }
 
   sleep(ms) {

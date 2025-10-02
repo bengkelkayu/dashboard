@@ -1,21 +1,35 @@
 // Import API client
-import { guestAPI, attendanceAPI } from './api-client.js';
+import { guestAPI, attendanceAPI, whatsappAPI, thankYouAPI } from './api-client.js';
 
 // Guest data storage
 let guests = [];
 let editingId = null;
+let templates = [];
 
 // Load data from API on page load
 document.addEventListener('DOMContentLoaded', async () => {
     await loadGuests();
     await updateStats();
+    await loadTemplates();
+    await checkWhatsAppStatus();
     setupEventListeners();
+    
+    // Poll WhatsApp status every 10 seconds
+    setInterval(checkWhatsAppStatus, 10000);
 });
 
 // Setup event listeners
 function setupEventListeners() {
     // Add guest button
     document.getElementById('addGuestBtn').addEventListener('click', openAddModal);
+
+    // WhatsApp buttons
+    document.getElementById('waQRBtn').addEventListener('click', showQRCode);
+    document.getElementById('sendAllWABtn').addEventListener('click', openBulkWAModal);
+    
+    // Bulk WA form
+    document.getElementById('bulkWAForm').addEventListener('submit', handleBulkWASend);
+    document.getElementById('bulkTemplate').addEventListener('change', updateBulkPreview);
 
     // Close modal
     document.querySelector('.close').addEventListener('click', closeModal);
@@ -227,6 +241,7 @@ function renderGuestTable(filteredGuests = null) {
                 <td>${attendanceBadge}</td>
                 <td onclick="event.stopPropagation();">
                     <button class="btn btn-edit" onclick="openEditModal(${guest.id})">Edit</button>
+                    <button class="btn btn-success btn-sm" onclick="sendWhatsAppToGuest(${guest.id})">📤 WA</button>
                     <button class="btn btn-delete" onclick="deleteGuest(${guest.id})">Hapus</button>
                 </td>
             </tr>
@@ -433,3 +448,175 @@ window.openGuestDrawer = openGuestDrawer;
 window.editCategory = editCategory;
 window.cancelCategoryEdit = cancelCategoryEdit;
 window.saveCategoryEdit = saveCategoryEdit;
+
+// ==================== WhatsApp Functions ====================
+
+// Load templates for bulk send
+async function loadTemplates() {
+    try {
+        const response = await thankYouAPI.getAll();
+        templates = response.data;
+        updateTemplateSelect();
+    } catch (error) {
+        console.error('Error loading templates:', error);
+        templates = [];
+    }
+}
+
+// Update template select dropdown
+function updateTemplateSelect() {
+    const select = document.getElementById('bulkTemplate');
+    const enabledTemplates = templates.filter(t => t.is_enabled);
+    
+    select.innerHTML = '<option value="">-- Pilih Template --</option>' +
+        enabledTemplates.map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
+}
+
+// Check WhatsApp connection status
+async function checkWhatsAppStatus() {
+    try {
+        const response = await whatsappAPI.getStatus();
+        const status = response.data;
+        
+        const indicator = document.getElementById('waStatusIndicator');
+        const text = document.getElementById('waStatusText');
+        const qrBtn = document.getElementById('waQRBtn');
+        
+        if (status.isConnected) {
+            indicator.className = 'status-indicator status-connected';
+            text.textContent = 'WA Terhubung';
+            qrBtn.style.display = 'none';
+        } else if (status.isConnecting) {
+            indicator.className = 'status-indicator status-connecting';
+            text.textContent = 'Menghubungkan...';
+            if (status.hasQRCode) {
+                qrBtn.style.display = 'inline-block';
+            }
+        } else {
+            indicator.className = 'status-indicator status-disconnected';
+            text.textContent = 'WA Terputus';
+            qrBtn.style.display = 'inline-block';
+        }
+    } catch (error) {
+        console.error('Error checking WhatsApp status:', error);
+    }
+}
+
+// Show QR Code modal
+async function showQRCode() {
+    const modal = document.getElementById('waQRModal');
+    const container = document.getElementById('qrCodeContainer');
+    
+    modal.style.display = 'block';
+    container.innerHTML = '<div class="loading">Memuat QR Code...</div>';
+    
+    try {
+        const response = await whatsappAPI.getQRCode();
+        container.innerHTML = `<img src="${response.data.qr}" alt="QR Code" style="max-width: 100%; height: auto;">`;
+    } catch (error) {
+        console.error('Error getting QR code:', error);
+        container.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+    }
+}
+
+// Close QR modal
+function closeWAQRModal() {
+    document.getElementById('waQRModal').style.display = 'none';
+}
+
+// Send WhatsApp to single guest
+async function sendWhatsAppToGuest(guestId) {
+    if (!confirm('Kirim pesan WhatsApp ke tamu ini?')) {
+        return;
+    }
+    
+    try {
+        const response = await whatsappAPI.sendToGuest(guestId, {});
+        alert(`✓ Pesan berhasil dikirim ke ${response.data.guest}`);
+    } catch (error) {
+        console.error('Error sending WhatsApp:', error);
+        alert(`✗ Gagal mengirim pesan: ${error.message}`);
+    }
+}
+
+// Open bulk send modal
+function openBulkWAModal() {
+    const modal = document.getElementById('bulkWAModal');
+    modal.style.display = 'block';
+    updateBulkPreview();
+}
+
+// Close bulk send modal
+function closeBulkWAModal() {
+    document.getElementById('bulkWAModal').style.display = 'none';
+    document.getElementById('bulkWAForm').reset();
+}
+
+// Update bulk send preview
+function updateBulkPreview() {
+    const templateId = document.getElementById('bulkTemplate').value;
+    const previewBox = document.getElementById('bulkPreviewMessage');
+    
+    if (!templateId) {
+        previewBox.textContent = 'Pilih template untuk melihat preview...';
+        return;
+    }
+    
+    const template = templates.find(t => t.id == templateId);
+    if (template) {
+        const preview = template.message_template
+            .replace(/\{nama\}/g, 'Budi Santoso')
+            .replace(/\{waktu_checkin\}/g, new Date().toLocaleString('id-ID', {
+                timeZone: 'Asia/Jakarta',
+                dateStyle: 'full',
+                timeStyle: 'short'
+            }));
+        previewBox.textContent = preview;
+    }
+}
+
+// Handle bulk send
+async function handleBulkWASend(e) {
+    e.preventDefault();
+    
+    const category = document.getElementById('bulkCategory').value;
+    const templateId = document.getElementById('bulkTemplate').value;
+    
+    if (!templateId) {
+        alert('Silakan pilih template terlebih dahulu');
+        return;
+    }
+    
+    const categoryText = category || 'semua kategori';
+    if (!confirm(`Kirim pesan WhatsApp ke semua tamu ${categoryText}?\n\nProses ini mungkin memakan waktu beberapa menit.`)) {
+        return;
+    }
+    
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Mengirim...';
+    
+    try {
+        const response = await whatsappAPI.sendToAll({
+            templateId: parseInt(templateId),
+            category: category || undefined
+        });
+        
+        const result = response.data;
+        alert(`Pengiriman selesai!\n\nTotal: ${result.total}\nBerhasil: ${result.success}\nGagal: ${result.failed}`);
+        
+        closeBulkWAModal();
+    } catch (error) {
+        console.error('Error sending bulk WhatsApp:', error);
+        alert(`✗ Gagal mengirim pesan: ${error.message}`);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+}
+
+// Make WhatsApp functions globally accessible
+window.closeWAQRModal = closeWAQRModal;
+window.closeBulkWAModal = closeBulkWAModal;
+window.sendWhatsAppToGuest = sendWhatsAppToGuest;

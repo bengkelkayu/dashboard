@@ -91,4 +91,14 @@ const thankYouAPI = {
   })
 };
 
-export { guestAPI, attendanceAPI, thankYouAPI };
+// WhatsApp API
+const whatsappAPI = {
+  getStatus: () => api.get('/whatsapp/status'),
+  getQRCode: () => api.get('/whatsapp/qr'),
+  initialize: () => api.post('/whatsapp/initialize'),
+  sendToGuest: (guestId, data) => api.post(`/whatsapp/send/${guestId}`, data),
+  sendToAll: (data) => api.post('/whatsapp/send-all', data),
+  disconnect: () => api.post('/whatsapp/disconnect')
+};
+
+export { guestAPI, attendanceAPI, thankYouAPI, whatsappAPI };

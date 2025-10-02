@@ -132,11 +132,21 @@ Server akan berjalan di `http://localhost:3000`
 ### 7. Auto Thank You Message
 - Template pesan terima kasih dengan placeholder {nama}, {waktu_checkin}
 - Enable/disable template
-- Queue system untuk pengiriman
+- Queue system untuk pengiriman via Baileys.js WhatsApp
 - Retry mechanism untuk failed messages
 - Preview template sebelum digunakan
+- Improved modal UI dengan dokumentasi placeholder yang jelas
 
-### 8. Observability & Logging
+### 8. WhatsApp Integration (Baileys.js)
+- **QR Code Authentication** - Scan QR code untuk menghubungkan WhatsApp
+- **Connection Status** - Real-time status koneksi WhatsApp di dashboard
+- **Send to Individual Guest** - Tombol "📤 WA" di setiap baris tamu
+- **Bulk Send** - Kirim pesan WhatsApp ke semua tamu sekaligus
+- **Category Filter** - Filter tamu berdasarkan kategori saat bulk send
+- **Template Selection** - Pilih template pesan yang akan dikirim
+- **Auto Thank You** - Otomatis kirim pesan terima kasih saat tamu check-in
+
+### 9. Observability & Logging
 - Audit log untuk semua perubahan data penting
 - HTTP request logging
 - Error tracking
@@ -162,6 +172,7 @@ Server akan berjalan di `http://localhost:3000`
 - **Bull** - Queue management untuk async tasks
 - **Helmet** - Security middleware
 - **Morgan** - HTTP request logger
+- **Baileys.js** (@whiskeysockets/baileys) - WhatsApp Web API untuk mengirim pesan
 
 ### Frontend
 - **HTML5** - Struktur halaman
@@ -254,6 +265,14 @@ Nomor WhatsApp harus dalam format internasional Indonesia:
 - `DELETE /api/thank-you/:id` - Hapus template
 - `PATCH /api/thank-you/:id/toggle` - Enable/disable template
 - `POST /api/thank-you/preview` - Preview template dengan sample data
+
+### WhatsApp API (Baileys.js)
+- `GET /api/whatsapp/status` - Get WhatsApp connection status
+- `GET /api/whatsapp/qr` - Get QR code for authentication
+- `POST /api/whatsapp/initialize` - Initialize WhatsApp connection
+- `POST /api/whatsapp/send/:guestId` - Send message to a single guest
+- `POST /api/whatsapp/send-all` - Send message to all guests (bulk)
+- `POST /api/whatsapp/disconnect` - Disconnect WhatsApp
 
 ### Webhook API
 - `POST /api/webhook/checkin` - Receive check-in event dari Digital Guestbook
