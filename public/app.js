@@ -219,13 +219,13 @@ function renderGuestTable(filteredGuests = null) {
     tbody.innerHTML = guestsToRender.map((guest, index) => {
         const attendanceBadge = getAttendanceBadge(guest.attendance_status);
         return `
-            <tr>
+            <tr onclick="window.openGuestDrawer(${guest.id})" style="cursor: pointer;">
                 <td>${index + 1}</td>
                 <td>${escapeHtml(guest.name)}</td>
                 <td>${escapeHtml(guest.phone)}</td>
                 <td>${getCategoryBadge(guest.category)}</td>
                 <td>${attendanceBadge}</td>
-                <td>
+                <td onclick="event.stopPropagation();">
                     <button class="btn btn-edit" onclick="openEditModal(${guest.id})">Edit</button>
                     <button class="btn btn-delete" onclick="deleteGuest(${guest.id})">Hapus</button>
                 </td>
@@ -320,6 +320,116 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// Guest Detail Drawer Functions
+let currentDrawerGuest = null;
+
+async function openGuestDrawer(id) {
+    try {
+        const response = await guestAPI.getById(id);
+        const guest = response.data;
+        currentDrawerGuest = guest;
+        
+        // Populate drawer
+        document.getElementById('drawerGuestName').textContent = guest.name;
+        document.getElementById('drawerGuestPhone').textContent = guest.phone;
+        document.getElementById('drawerCategoryDisplay').innerHTML = getCategoryBadge(guest.category);
+        document.getElementById('drawerCategorySelect').value = guest.category;
+        
+        // Attendance status
+        const statusHtml = getAttendanceBadge(guest.attendance_status);
+        if (guest.last_check_in) {
+            const lastCheckIn = new Date(guest.last_check_in).toLocaleString('id-ID');
+            document.getElementById('drawerAttendanceStatus').innerHTML = `
+                ${statusHtml}
+                <p style="margin-top: 10px; color: #6c757d; font-size: 14px;">
+                    Terakhir check-in: ${lastCheckIn}
+                </p>
+            `;
+        } else {
+            document.getElementById('drawerAttendanceStatus').innerHTML = statusHtml;
+        }
+        
+        // Attendance history
+        const historyContainer = document.getElementById('drawerAttendanceHistory');
+        if (guest.attendance_history && guest.attendance_history.length > 0) {
+            historyContainer.innerHTML = guest.attendance_history.map(item => {
+                const date = new Date(item.check_in_time).toLocaleString('id-ID', {
+                    dateStyle: 'full',
+                    timeStyle: 'short'
+                });
+                return `
+                    <div class="history-item">
+                        <div class="history-item-date">${date}</div>
+                        <div class="history-item-source">Sumber: ${item.check_in_source || '-'}</div>
+                        ${item.notes ? `<div class="history-item-notes">${escapeHtml(item.notes)}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        } else {
+            historyContainer.innerHTML = '<p class="empty-text">Belum ada riwayat check-in</p>';
+        }
+        
+        // Show drawer
+        document.getElementById('guestDrawer').classList.add('open');
+        document.body.style.overflow = 'hidden';
+    } catch (error) {
+        console.error('Error opening guest drawer:', error);
+        alert('Gagal membuka detail tamu');
+    }
+}
+
+function closeGuestDrawer() {
+    document.getElementById('guestDrawer').classList.remove('open');
+    document.body.style.overflow = '';
+    currentDrawerGuest = null;
+    cancelCategoryEdit();
+}
+
+function editCategory() {
+    document.getElementById('drawerCategory').style.display = 'none';
+    document.getElementById('drawerCategoryEdit').style.display = 'flex';
+}
+
+function cancelCategoryEdit() {
+    document.getElementById('drawerCategory').style.display = 'flex';
+    document.getElementById('drawerCategoryEdit').style.display = 'none';
+}
+
+async function saveCategoryEdit() {
+    if (!currentDrawerGuest) return;
+    
+    const newCategory = document.getElementById('drawerCategorySelect').value;
+    
+    try {
+        await guestAPI.update(currentDrawerGuest.id, {
+            name: currentDrawerGuest.name,
+            phone: currentDrawerGuest.phone,
+            category: newCategory
+        });
+        
+        // Reload data
+        await loadGuests();
+        await updateStats();
+        
+        // Update drawer
+        currentDrawerGuest.category = newCategory;
+        document.getElementById('drawerCategoryDisplay').innerHTML = getCategoryBadge(newCategory);
+        cancelCategoryEdit();
+    } catch (error) {
+        console.error('Error updating category:', error);
+        alert('Gagal mengubah kategori: ' + error.message);
+    }
+}
+
+// Setup drawer close handlers
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelector('.close-drawer')?.addEventListener('click', closeGuestDrawer);
+});
+
 // Make functions globally accessible
 window.openEditModal = openEditModal;
 window.deleteGuest = deleteGuest;
+window.openGuestDrawer = openGuestDrawer;
+window.editCategory = editCategory;
+window.cancelCategoryEdit = cancelCategoryEdit;
+window.saveCategoryEdit = saveCategoryEdit;

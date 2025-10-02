@@ -9,54 +9,35 @@ Full-stack monolithic dashboard untuk mengelola daftar tamu undangan pernikahan 
 - PostgreSQL (v12 atau lebih tinggi)
 - Redis (opsional, untuk queue worker)
 
-### Instalasi
+### Quick Start
 
-1. Clone repository ini
 ```bash
+# Clone repository
 git clone https://github.com/bengkelkayu/dashboard.git
 cd dashboard
-```
 
-2. Install dependencies
-```bash
+# Run setup script (Linux/Mac)
+chmod +x setup.sh
+./setup.sh
+
+# Or manually install
 npm install
-```
-
-3. Setup database PostgreSQL
-```bash
-# Login ke PostgreSQL
-psql -U postgres
-
-# Buat database baru
-CREATE DATABASE wedding_dashboard;
-```
-
-4. Konfigurasi environment variables
-```bash
 cp .env.example .env
-# Edit .env dan sesuaikan dengan konfigurasi database Anda
-```
-
-5. Jalankan migrasi database
-```bash
+# Edit .env with your database configuration
 npm run migrate
-```
-
-6. Jalankan server
-```bash
-# Development mode dengan auto-reload
+npm run seed  # Optional: seed sample data
 npm run dev
-
-# Production mode
-npm start
-```
-
-7. (Opsional) Jalankan worker untuk auto thank you message
-```bash
-npm run worker
 ```
 
 Server akan berjalan di `http://localhost:3000`
+
+### Instalasi Manual
+
+Untuk instruksi instalasi lengkap, lihat [DEVELOPMENT.md](DEVELOPMENT.md)
+
+### Dokumentasi API
+
+Untuk dokumentasi lengkap API endpoints, lihat [API.md](API.md)
 
 ## ✨ Fitur
 
