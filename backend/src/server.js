@@ -14,12 +14,16 @@ import guestRoutes from './routes/guests.js';
 import attendanceRoutes from './routes/attendance.js';
 import thankYouRoutes from './routes/thankYou.js';
 import webhookRoutes from './routes/webhook.js';
+import whatsappRoutes from './routes/whatsapp.js';
 
 // Database
 import pool from './config/database.js';
 
 // Worker
 import ThankYouWorker from './workers/thankYouWorker.js';
+
+// Services
+import whatsappService from './services/whatsappService.js';
 
 dotenv.config();
 
@@ -64,6 +68,7 @@ app.use('/api/guests', guestRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/thank-you', thankYouRoutes);
 app.use('/api/webhook', webhookRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
 
 // API root
 app.get('/api', (req, res) => {
@@ -114,6 +119,17 @@ const server = app.listen(PORT, async () => {
     const worker = new ThankYouWorker();
     worker.start().catch(console.error);
     console.log('✓ Thank You Worker started');
+  }
+
+  // Initialize WhatsApp service
+  if (process.env.AUTO_START_WHATSAPP !== 'false') {
+    try {
+      await whatsappService.initialize();
+      console.log('✓ WhatsApp service initialized');
+    } catch (error) {
+      console.error('✗ WhatsApp initialization failed:', error.message);
+      console.log('You can initialize it later via API endpoint /api/whatsapp/initialize');
+    }
   }
 });
 

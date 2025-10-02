@@ -26,43 +26,65 @@
 
     <!-- Modal Form -->
     <div id="templateModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content modal-improved">
             <div class="modal-header">
                 <h2 id="modalTitle">Tambah Template</h2>
                 <span class="close">&times;</span>
             </div>
             <form id="templateForm">
-                <div class="form-group">
-                    <label for="templateName">Nama Template *</label>
-                    <input type="text" id="templateName" name="name" required>
-                    <span class="error" id="nameError"></span>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="templateName">
+                            <span class="label-icon">📝</span> Nama Template <span class="required">*</span>
+                        </label>
+                        <input type="text" id="templateName" name="name" required placeholder="Contoh: Ucapan Terima Kasih">
+                        <span class="error" id="nameError"></span>
+                    </div>
                 </div>
+
                 <div class="form-group">
-                    <label for="messageTemplate">Pesan Template *</label>
-                    <textarea id="messageTemplate" name="message_template" rows="5" required placeholder="Gunakan {nama} dan {waktu_checkin} sebagai placeholder"></textarea>
+                    <label for="messageTemplate">
+                        <span class="label-icon">💬</span> Pesan Template <span class="required">*</span>
+                    </label>
+                    <textarea id="messageTemplate" name="message_template" rows="6" required 
+                              placeholder="Contoh: Terima kasih {nama} telah hadir di acara kami!"></textarea>
                     <span class="error" id="messageError"></span>
-                    <small class="help-text">
-                        Placeholder yang tersedia:<br>
-                        • {nama} - Nama tamu<br>
-                        • {waktu_checkin} - Waktu check-in tamu
-                    </small>
+                    
+                    <div class="placeholder-info">
+                        <strong>💡 Placeholder yang tersedia:</strong>
+                        <div class="placeholder-list">
+                            <div class="placeholder-item">
+                                <code>{nama}</code>
+                                <span>Nama tamu</span>
+                            </div>
+                            <div class="placeholder-item">
+                                <code>{waktu_checkin}</code>
+                                <span>Waktu check-in tamu</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
                 <div class="form-group">
-                    <label>
+                    <label class="checkbox-label">
                         <input type="checkbox" id="isEnabled" name="is_enabled" checked>
-                        Aktifkan template ini
+                        <span>✓ Aktifkan template ini</span>
                     </label>
                 </div>
+
                 <div class="preview-section">
-                    <h3>Preview:</h3>
+                    <h3>👁️ Preview Pesan</h3>
                     <div id="previewMessage" class="preview-box">
                         Ketik pesan untuk melihat preview...
                     </div>
-                    <button type="button" class="btn btn-secondary btn-sm" id="previewBtn">Update Preview</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="previewBtn">
+                        🔄 Update Preview
+                    </button>
                 </div>
+
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancelBtn">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan</button>
+                    <button type="submit" class="btn btn-primary">💾 Simpan</button>
                 </div>
             </form>
         </div>

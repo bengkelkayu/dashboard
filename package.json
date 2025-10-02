@@ -11,10 +11,16 @@
     "seed": "psql $DATABASE_URL < backend/migrations/seed-sample-data.sql || psql -U $DB_USER -d $DB_NAME < backend/migrations/seed-sample-data.sql",
     "worker": "node backend/src/workers/thankYouWorker.js"
   },
-  "keywords": ["wedding", "guest", "dashboard", "attendance"],
+  "keywords": [
+    "wedding",
+    "guest",
+    "dashboard",
+    "attendance"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@whiskeysockets/baileys": "^7.0.0-rc.4",
     "axios": "^1.12.2",
     "body-parser": "^2.2.0",
     "bull": "^4.16.5",
@@ -24,7 +30,9 @@
     "express-validator": "^7.2.1",
     "helmet": "^8.1.0",
     "morgan": "^1.10.1",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
