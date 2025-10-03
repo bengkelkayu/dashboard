@@ -101,4 +101,10 @@ const whatsappAPI = {
   disconnect: () => api.post('/whatsapp/disconnect')
 };
 
-export { guestAPI, attendanceAPI, thankYouAPI, whatsappAPI };
+// QR Code API
+const qrAPI = {
+  getGuestQRCode: (guestId) => api.get(`/qr/guests/${guestId}/qrcode`),
+  scanQR: (qrData) => api.post('/qr/scan-qr', { qrData })
+};
+
+export { guestAPI, attendanceAPI, thankYouAPI, whatsappAPI, qrAPI };

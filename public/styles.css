@@ -670,3 +670,64 @@ tbody tr:hover {
         justify-content: center;
     }
 }
+
+/* QR Code Styles */
+.btn-qr {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-qr:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.qr-modal-content {
+    max-width: 450px;
+}
+
+.qr-modal-body {
+    padding: 20px;
+}
+
+.qr-modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.qr-modal-actions .btn {
+    flex: 1;
+    max-width: 200px;
+}
+
+/* Loading animation */
+.loading {
+    display: inline-block;
+    color: #666;
+    font-style: italic;
+}
+
+.loading:after {
+    content: '.';
+    animation: dots 1.5s steps(3, end) infinite;
+}
+
+@keyframes dots {
+    0%, 20% {
+        content: '.';
+    }
+    40% {
+        content: '..';
+    }
+    60%, 100% {
+        content: '...';
+    }
+}

@@ -212,6 +212,31 @@
         </div>
     </div>
 
+    <!-- QR Code Modal -->
+    <div id="qrModal" class="modal">
+        <div class="modal-content qr-modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2>QR Code Tamu</h2>
+                <span class="close" onclick="window.closeQRModal()">&times;</span>
+            </div>
+            <div class="qr-modal-body">
+                <div id="qrGuestInfo" style="text-align: center; margin-bottom: 15px; font-size: 16px;">
+                    Loading...
+                </div>
+                <div id="qrCodeImage" style="text-align: center; padding: 20px;">
+                    <div class="loading">Memuat QR Code...</div>
+                </div>
+                <div class="qr-modal-actions">
+                    <button class="btn btn-primary" onclick="window.downloadQRCode()">📥 Download QR Code</button>
+                    <button class="btn btn-secondary" onclick="window.closeQRModal()">Tutup</button>
+                </div>
+                <p style="color: #666; font-size: 13px; text-align: center; margin-top: 15px;">
+                    Tunjukkan QR code ini kepada usher untuk check-in otomatis
+                </p>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="api-client.js"></script>
     <script type="module" src="app.js"></script>
 </body>
