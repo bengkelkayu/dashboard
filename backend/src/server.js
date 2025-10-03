@@ -15,6 +15,7 @@ import attendanceRoutes from './routes/attendance.js';
 import thankYouRoutes from './routes/thankYou.js';
 import webhookRoutes from './routes/webhook.js';
 import whatsappRoutes from './routes/whatsapp.js';
+import qrRoutes from './routes/qr.js';
 
 // Database
 import pool from './config/database.js';
@@ -69,6 +70,7 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/thank-you', thankYouRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
+app.use('/api/qr', qrRoutes);
 
 // API root
 app.get('/api', (req, res) => {
