@@ -66,7 +66,9 @@ Running migration: 002_add_qr_code_columns.sql
 ✓ Migration 002_add_qr_code_columns.sql completed successfully
 Running migration: 003_add_invitation_link.sql
 ✓ Migration 003_add_invitation_link.sql completed successfully
-✓ Successfully applied 3 migration(s)
+Running migration: 004_add_invitation_templates.sql
+✓ Migration 004_add_invitation_templates.sql completed successfully
+✓ Successfully applied 4 migration(s)
 ```
 
 ### Expected Output (Subsequent Runs)
@@ -77,6 +79,7 @@ Starting database migrations...
 ⊘ Skipping 001_initial_schema.sql (already applied)
 ⊘ Skipping 002_add_qr_code_columns.sql (already applied)
 ⊘ Skipping 003_add_invitation_link.sql (already applied)
+⊘ Skipping 004_add_invitation_templates.sql (already applied)
 ✓ All migrations already applied - database is up to date
 ```
 
@@ -86,6 +89,7 @@ Migration files should follow these naming conventions:
 - `001_initial_schema.sql` - Initial database schema
 - `002_add_qr_code_columns.sql` - Add QR code columns
 - `003_add_invitation_link.sql` - Add invitation link column
+- `004_add_invitation_templates.sql` - Add invitation templates table
 - `XXX_description.sql` - Future migrations
 
 **Note**: Files containing `seed` in their name are excluded from migrations.

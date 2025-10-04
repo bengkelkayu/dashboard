@@ -219,7 +219,7 @@ fi
 Checks:
 - ✅ QR code columns (`qr_code_token`, `qr_code_url`, `qr_code_generated_at`)
 - ✅ invitation_link column
-- ✅ All required tables (`guests`, `guest_attendance`, `thank_you_templates`, `thank_you_outbox`)
+- ✅ All required tables (`guests`, `guest_attendance`, `thank_you_templates`, `thank_you_outbox`, `invitation_templates`)
 
 Expected output on success:
 ```
@@ -229,6 +229,11 @@ Expected output on success:
    ✓ qr_code_url
 ✅ invitation_link column exists in guests table
 ✅ All required tables exist
+   ✓ guest_attendance
+   ✓ guests
+   ✓ invitation_templates
+   ✓ thank_you_outbox
+   ✓ thank_you_templates
 ✅ Database schema verification complete - All checks passed!
 ```
 
@@ -238,12 +243,14 @@ Applies migrations:
 - `001_initial_schema.sql` - Creates initial tables
 - `002_add_qr_code_columns.sql` - Adds QR code columns
 - `003_add_invitation_link.sql` - Adds invitation_link column
+- `004_add_invitation_templates.sql` - Adds invitation_templates table
 
 Expected output:
 ```
 ✓ Migration 001_initial_schema.sql applied successfully
 ✓ Migration 002_add_qr_code_columns.sql applied successfully
 ✓ Migration 003_add_invitation_link.sql applied successfully
+✓ Migration 004_add_invitation_templates.sql applied successfully
 ```
 
 ## 🎯 Success Criteria
