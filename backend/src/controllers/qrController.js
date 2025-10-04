@@ -24,6 +24,8 @@ function verifySignature(data, signature) {
 // Generate QR code for a guest
 export async function generateQRCodeForGuest(guestId, guestData) {
   try {
+    console.log(`Generating QR code for guest ID: ${guestId}, name: ${guestData.name}`);
+    
     const token = uuidv4();
     const payload = {
       guest_id: guestId,
@@ -38,6 +40,8 @@ export async function generateQRCodeForGuest(guestId, guestData) {
       token: token
     });
     
+    console.log(`QR payload created, generating QR code image...`);
+    
     // Generate QR code as data URL
     const qrCodeUrl = await QRCode.toDataURL(JSON.stringify(payload), {
       errorCorrectionLevel: 'H',
@@ -45,15 +49,29 @@ export async function generateQRCodeForGuest(guestId, guestData) {
       margin: 2
     });
     
+    console.log(`QR code image generated (${qrCodeUrl.length} bytes), updating guest record...`);
+    
     // Update guest record with QR code data
-    await Guest.updateQRCode(guestId, token, qrCodeUrl);
+    const updatedGuest = await Guest.updateQRCode(guestId, token, qrCodeUrl);
+    
+    if (!updatedGuest) {
+      throw new Error('Failed to update guest record with QR code data');
+    }
+    
+    console.log(`✓ QR code generated and saved successfully for guest ${guestData.name}`);
     
     return {
       qrCode: qrCodeUrl,
       token: token
     };
   } catch (error) {
-    console.error('Error generating QR code:', error);
+    console.error(`✗ Error generating QR code for guest ${guestId}:`, error);
+    console.error('Error details:', {
+      guestId,
+      guestName: guestData?.name,
+      errorMessage: error.message,
+      errorStack: error.stack
+    });
     throw error;
   }
 }

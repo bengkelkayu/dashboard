@@ -12,3 +12,4 @@ build/
 coverage/
 .nyc_output/
 baileys_auth/
+test-qr-generation.js
