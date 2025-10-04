@@ -65,12 +65,12 @@ async function verifySchema() {
       SELECT table_name 
       FROM information_schema.tables 
       WHERE table_schema = 'public' 
-      AND table_name IN ('guests', 'guest_attendance', 'thank_you_templates', 'thank_you_outbox')
+      AND table_name IN ('guests', 'guest_attendance', 'thank_you_templates', 'thank_you_outbox', 'invitation_templates')
       ORDER BY table_name
     `);
     
     const tables = tablesCheck.rows.map(r => r.table_name);
-    const expectedTables = ['guest_attendance', 'guests', 'thank_you_outbox', 'thank_you_templates'];
+    const expectedTables = ['guest_attendance', 'guests', 'invitation_templates', 'thank_you_outbox', 'thank_you_templates'];
     const missingTables = expectedTables.filter(tbl => !tables.includes(tbl));
     
     if (missingTables.length > 0) {
