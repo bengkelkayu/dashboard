@@ -24,6 +24,7 @@ Deploy otomatis dengan 1 klik via GitHub Actions dengan **schema verification** 
 - ✅ QR code functionality testing
 - ✅ Migration error detection
 - ✅ Detailed deployment status
+- ✅ Idempotent migrations (can run multiple times safely)
 
 **📖 Panduan lengkap:** 
 - [WORKFLOW_QUICK_START.md](WORKFLOW_QUICK_START.md) - **Quick start guide** ⚡
@@ -92,6 +93,7 @@ Server akan berjalan di `http://localhost:3000`
 - 🚀 [INSTALL_VPS_ID.md](INSTALL_VPS_ID.md) - Panduan install VPS (Bahasa Indonesia)
 - 📖 [DEPLOYMENT_VPS.md](DEPLOYMENT_VPS.md) - VPS deployment guide
 - 🔧 [DEVELOPMENT.md](DEVELOPMENT.md) - Development guide
+- 🗄️ [MIGRATION_SYSTEM.md](MIGRATION_SYSTEM.md) - Database migration system
 - 📡 [API.md](API.md) - API documentation
 - ⚡ [QUICK_REFERENCE.md](QUICK_REFERENCE.md) - Quick command reference
 
@@ -194,6 +196,24 @@ Server akan berjalan di `http://localhost:3000`
 - **thank_you_templates** - Template pesan terima kasih
 - **thank_you_outbox** - Queue pengiriman pesan
 - **audit_logs** - Log untuk audit dan observability
+- **schema_migrations** - Migration tracking (auto-managed)
+
+### Database Migrations
+
+The project uses an idempotent migration system that tracks applied migrations:
+
+```bash
+npm run migrate        # Apply pending migrations
+npm run verify-schema  # Verify database schema
+```
+
+**Key Features:**
+- ✅ Safe to run multiple times - skips already applied migrations
+- ✅ Automatic tracking via `schema_migrations` table
+- ✅ No "trigger already exists" errors
+- ✅ Works with both fresh and existing databases
+
+See [MIGRATION_SYSTEM.md](MIGRATION_SYSTEM.md) for detailed documentation.
 
 ## 📱 Responsive Design
 
