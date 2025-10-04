@@ -117,7 +117,9 @@ Script verify-build.sh berhasil dijalankan dan semua workflow pass.
 
 Workflow `setup-ssl.yml` sudah bekerja dengan baik. Tidak ada error.
 
-### Cara Menggunakan:
+### Dua Pilihan SSL:
+
+#### Option A: Let's Encrypt dengan Domain (Recommended)
 
 1. **Beli Domain** (jika belum punya)
    - Namecheap, GoDaddy, Cloudflare, dll
@@ -138,6 +140,48 @@ Workflow `setup-ssl.yml` sudah bekerja dengan baik. Tidak ada error.
    - Isi:
      - Domain: `yourdomain.com`
      - Email: `rahul.ok63@gmail.com` (atau email Anda)
+   - Klik "Run workflow"
+
+5. **Workflow akan:**
+   - ✅ Cek apakah domain sudah point ke VPS
+   - ✅ Install certbot
+   - ✅ Mendapatkan SSL certificate dari Let's Encrypt
+   - ✅ Configure Nginx dengan HTTPS
+   - ✅ Setup auto-renewal
+   - ✅ Restart services
+
+**Keuntungan:**
+- ✅ Gratis dan trusted
+- ✅ Tidak ada security warning
+- ✅ Auto-renewal
+
+#### Option B: Self-Signed dengan IP Address (Testing)
+
+**Jika belum punya domain**, bisa gunakan self-signed certificate:
+
+1. **SSH ke VPS**
+2. **Generate certificate:**
+   ```bash
+   mkdir -p /etc/nginx/ssl
+   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+     -keyout /etc/nginx/ssl/selfsigned.key \
+     -out /etc/nginx/ssl/selfsigned.crt \
+     -subj "/C=ID/ST=Jakarta/L=Jakarta/O=Wedding/CN=43.134.97.90" \
+     -addext "subjectAltName=IP:43.134.97.90"
+   ```
+3. **Update Nginx config** (lihat SSL_SETUP_GUIDE.md)
+4. **Restart Nginx**
+
+**Keuntungan:**
+- ✅ Tidak perlu domain
+- ✅ Cepat dan mudah
+- ✅ Camera tetap berfungsi
+
+**Kekurangan:**
+- ⚠️ Browser akan warning (harus accept manual)
+- ❌ Tidak untuk production
+
+**Detail lengkap:** Lihat `SSL_SETUP_GUIDE.md`
    - Klik "Run workflow"
 
 5. **Workflow akan:**

@@ -28,13 +28,18 @@ Deploy otomatis dengan 1 klik via GitHub Actions dengan **schema verification** 
 
 **🔐 IMPORTANT: SSL/HTTPS for QR Scanner**
 - ⚠️ **QR Scanner requires HTTPS** to access camera (browser security requirement)
-- ✅ **Easy SSL Setup** via GitHub Actions - automated Let's Encrypt certificate
-- 📖 **Setup Guide**: [SSL_SETUP_GUIDE.md](SSL_SETUP_GUIDE.md)
+- ✅ **Two Options for SSL:**
+  - **Let's Encrypt** (with domain - recommended for production) - automated via GitHub Actions
+  - **Self-Signed** (with IP address - for testing/development) - 5 minute setup
+- 📖 **Setup Guides**: 
+  - [SSL_SETUP_GUIDE.md](SSL_SETUP_GUIDE.md) - Complete SSL guide (both options)
+  - [SSL_IP_QUICK_GUIDE.md](SSL_IP_QUICK_GUIDE.md) - Quick guide for IP-based SSL
 - 🎯 **Why needed**: Modern browsers block camera access on non-HTTPS sites
 
 **📖 Panduan lengkap:** 
 - [WORKFLOW_QUICK_START.md](WORKFLOW_QUICK_START.md) - **Quick start guide** ⚡
-- [SSL_SETUP_GUIDE.md](SSL_SETUP_GUIDE.md) - **SSL/HTTPS setup for QR Scanner** 🔐
+- [SSL_SETUP_GUIDE.md](SSL_SETUP_GUIDE.md) - **Complete SSL/HTTPS setup guide** 🔐
+- [SSL_IP_QUICK_GUIDE.md](SSL_IP_QUICK_GUIDE.md) - **SSL untuk IP address (tanpa domain)** 🚀
 - [WORKFLOW_ENHANCEMENTS.md](WORKFLOW_ENHANCEMENTS.md) - Technical details
 - [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md) - Initial setup
 
@@ -97,7 +102,8 @@ Server akan berjalan di `http://localhost:3000`
 ### 📚 Dokumentasi
 
 - 🚀 [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md) - **GitHub Actions deployment (RECOMMENDED)**
-- 🔐 [SSL_SETUP_GUIDE.md](SSL_SETUP_GUIDE.md) - **SSL/HTTPS setup for QR Scanner**
+- 🔐 [SSL_SETUP_GUIDE.md](SSL_SETUP_GUIDE.md) - **Complete SSL/HTTPS setup guide**
+- 🚀 [SSL_IP_QUICK_GUIDE.md](SSL_IP_QUICK_GUIDE.md) - **SSL untuk IP address (tanpa domain)**
 - 🚀 [INSTALL_VPS_ID.md](INSTALL_VPS_ID.md) - Panduan install VPS (Bahasa Indonesia)
 - 📖 [DEPLOYMENT_VPS.md](DEPLOYMENT_VPS.md) - VPS deployment guide
 - 🔧 [DEVELOPMENT.md](DEVELOPMENT.md) - Development guide
