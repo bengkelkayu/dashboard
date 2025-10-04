@@ -53,6 +53,7 @@ npm run migrate
 ✓ Migration 001_initial_schema.sql applied successfully
 ✓ Migration 002_add_qr_code_columns.sql applied successfully
 ✓ Migration 003_add_invitation_link.sql applied successfully
+✓ Migration 004_add_invitation_templates.sql applied successfully
 ```
 
 **Verify again**:
@@ -70,6 +71,7 @@ Should now show:
 ✅ All required tables exist
    ✓ guest_attendance
    ✓ guests
+   ✓ invitation_templates
    ✓ thank_you_outbox
    ✓ thank_you_templates
 
