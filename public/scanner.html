@@ -207,7 +207,8 @@
         async function initScanner() {
             try {
                 // Check if we're in a secure context (HTTPS or localhost)
-                if (!window.isSecureContext && window.location.protocol !== 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                if (!window.isSecureContext && !isLocalhost) {
                     showResult('error', 'Akses Tidak Aman', 
                         'Kamera hanya bisa diakses melalui HTTPS. Mohon akses halaman ini melalui https://');
                     return;
