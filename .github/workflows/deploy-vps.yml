@@ -202,7 +202,13 @@ ENVEOF
           
           # Run migrations
           echo "🗄️  Running database migrations..."
-          npm run migrate || echo "⚠️  Migrations failed or already applied"
+          if npm run migrate; then
+            echo "✓ Migrations completed successfully"
+          else
+            echo "⚠️  Migrations failed or already applied"
+            echo "Checking migration status..."
+            psql -U wedding_user -d wedding_dashboard -c "\dt" 2>/dev/null || echo "Unable to check database tables"
+          fi
           
           # Configure Nginx
           echo "🌐 Configuring Nginx..."
@@ -237,8 +243,21 @@ ENVEOF
           pm2 delete wedding-api 2>/dev/null || true
           pm2 delete wedding-worker 2>/dev/null || true
           
-          pm2 start backend/src/server.js --name wedding-api --log-date-format "YYYY-MM-DD HH:mm:ss Z"
-          pm2 start backend/src/workers/thankYouWorker.js --name wedding-worker --log-date-format "YYYY-MM-DD HH:mm:ss Z"
+          # Start API server
+          if pm2 start backend/src/server.js --name wedding-api --log-date-format "YYYY-MM-DD HH:mm:ss Z"; then
+            echo "✓ API server started"
+          else
+            echo "❌ Failed to start API server"
+            exit 1
+          fi
+          
+          # Start worker (non-critical)
+          if pm2 start backend/src/workers/thankYouWorker.js --name wedding-worker --log-date-format "YYYY-MM-DD HH:mm:ss Z"; then
+            echo "✓ Worker started"
+          else
+            echo "⚠️  Worker failed to start (non-critical)"
+          fi
+          
           pm2 save
           
           # Setup PM2 startup
@@ -246,6 +265,18 @@ ENVEOF
           pm2 save
           
           echo "✓ Application deployed and running"
+          
+          # Wait for services to stabilize
+          echo "⏳ Waiting for services to stabilize..."
+          sleep 3
+          
+          # Check if API is responding
+          if curl -f http://localhost:3000/health 2>/dev/null; then
+            echo "✓ API health check passed"
+          else
+            echo "⚠️  API health check failed, checking logs..."
+            pm2 logs wedding-api --lines 30 --nostream
+          fi
           
           # Configure firewall
           echo "🔥 Configuring firewall..."
@@ -280,9 +311,59 @@ ENVEOF
       run: |
         echo "🔍 Verifying deployment..."
         sleep 5
+        
+        # Check HTTP response
         HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.VPS_HOST }})
         if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "304" ]; then
           echo "✅ Deployment successful! Application is responding."
         else
           echo "⚠️  Warning: Application returned HTTP code $HTTP_CODE"
+          exit 1
         fi
+        
+        # Check PM2 processes
+        echo ""
+        echo "🔍 Checking PM2 processes..."
+        ssh -o StrictHostKeyChecking=no root@${{ secrets.VPS_HOST }} << 'ENDSSH'
+          pm2 status
+          
+          # Check if processes are running
+          API_STATUS=$(pm2 jlist | jq -r '.[] | select(.name=="wedding-api") | .pm2_env.status')
+          WORKER_STATUS=$(pm2 jlist | jq -r '.[] | select(.name=="wedding-worker") | .pm2_env.status')
+          
+          echo ""
+          echo "📊 Process Status:"
+          echo "   - API: ${API_STATUS:-not found}"
+          echo "   - Worker: ${WORKER_STATUS:-not found}"
+          
+          if [ "$API_STATUS" != "online" ]; then
+            echo "❌ API process is not running!"
+            exit 1
+          fi
+          
+          if [ "$WORKER_STATUS" != "online" ]; then
+            echo "⚠️  Worker process is not running (non-critical)"
+          fi
+          
+          echo ""
+          echo "📜 Recent API logs:"
+          pm2 logs wedding-api --lines 20 --nostream
+        ENDSSH
+        
+        echo ""
+        echo "✅ Deployment verification completed successfully!"
+    
+    - name: Post-Deployment Summary
+      if: always()
+      run: |
+        echo ""
+        echo "================================================"
+        echo "📋 Deployment Summary"
+        echo "================================================"
+        echo "Repository: bengkelkayu/dashboard"
+        echo "Branch: ${{ github.ref_name }}"
+        echo "Commit: ${{ github.sha }}"
+        echo "Deploy Type: ${{ github.event.inputs.deploy_type }}"
+        echo "Deployed to: http://${{ secrets.VPS_HOST }}"
+        echo "Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+        echo "================================================"

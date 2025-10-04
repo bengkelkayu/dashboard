@@ -75,6 +75,7 @@ function openEditModal(id) {
         document.getElementById('guestName').value = guest.name;
         document.getElementById('guestPhone').value = guest.phone;
         document.getElementById('guestCategory').value = guest.category;
+        document.getElementById('guestInvitationLink').value = guest.invitation_link || '';
         clearErrors();
         document.getElementById('guestModal').style.display = 'block';
     }
@@ -95,6 +96,7 @@ async function handleFormSubmit(e) {
     const name = document.getElementById('guestName').value.trim();
     const phone = document.getElementById('guestPhone').value.trim();
     const category = document.getElementById('guestCategory').value;
+    const invitation_link = document.getElementById('guestInvitationLink').value.trim();
 
     // Validate all fields
     const isNameValid = validateName();
@@ -106,7 +108,7 @@ async function handleFormSubmit(e) {
     }
 
     try {
-        const guestData = { name, phone, category };
+        const guestData = { name, phone, category, invitation_link: invitation_link || null };
         
         if (editingId) {
             // Update existing guest
@@ -351,6 +353,14 @@ async function openGuestDrawer(id) {
         document.getElementById('drawerCategoryDisplay').innerHTML = getCategoryBadge(guest.category);
         document.getElementById('drawerCategorySelect').value = guest.category;
         
+        // Invitation link
+        const invitationLinkContainer = document.getElementById('drawerInvitationLink');
+        if (guest.invitation_link) {
+            invitationLinkContainer.innerHTML = `<a href="${escapeHtml(guest.invitation_link)}" target="_blank" style="color: #007bff; text-decoration: none;">${escapeHtml(guest.invitation_link)}</a>`;
+        } else {
+            invitationLinkContainer.innerHTML = '<span style="color: #666;">Tidak ada link undangan</span>';
+        }
+        
         // Attendance status
         const statusHtml = getAttendanceBadge(guest.attendance_status);
         if (guest.last_check_in) {
@@ -420,7 +430,8 @@ async function saveCategoryEdit() {
         await guestAPI.update(currentDrawerGuest.id, {
             name: currentDrawerGuest.name,
             phone: currentDrawerGuest.phone,
-            category: newCategory
+            category: newCategory,
+            invitation_link: currentDrawerGuest.invitation_link || null
         });
         
         // Reload data
@@ -677,7 +688,30 @@ function closeQRModal() {
     window.currentQRData = null;
 }
 
+// Send invitation with QR code to current drawer guest
+async function sendInvitationWithQR() {
+    if (!window.currentDrawerGuest) {
+        alert('Tidak ada tamu yang dipilih');
+        return;
+    }
+    
+    const guest = window.currentDrawerGuest;
+    
+    if (!confirm(`Kirim QR Code dan link undangan ke ${guest.name} (${guest.phone})?`)) {
+        return;
+    }
+    
+    try {
+        const response = await whatsappAPI.sendInvitationWithQR(guest.id, {});
+        alert(`✓ QR Code dan undangan berhasil dikirim ke ${guest.name}!`);
+    } catch (error) {
+        console.error('Error sending invitation with QR:', error);
+        alert(`✗ Gagal mengirim: ${error.message}`);
+    }
+}
+
 // Make QR functions globally accessible
 window.viewQRCode = viewQRCode;
 window.downloadQRCode = downloadQRCode;
 window.closeQRModal = closeQRModal;
+window.sendInvitationWithQR = sendInvitationWithQR;

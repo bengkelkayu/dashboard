@@ -111,6 +111,45 @@ class WhatsAppService {
     }
   }
 
+  async sendMessageWithImage(phone, message, imageDataUrl) {
+    if (!this.isConnected || !this.sock) {
+      throw new Error('WhatsApp is not connected. Please scan QR code first.');
+    }
+
+    try {
+      // Format phone number for WhatsApp (remove leading zeros, ensure country code)
+      let formattedPhone = phone.replace(/\D/g, '');
+      
+      // If starts with 0, replace with 62
+      if (formattedPhone.startsWith('0')) {
+        formattedPhone = '62' + formattedPhone.substring(1);
+      }
+      
+      // If doesn't start with 62, add it
+      if (!formattedPhone.startsWith('62')) {
+        formattedPhone = '62' + formattedPhone;
+      }
+
+      const jid = `${formattedPhone}@s.whatsapp.net`;
+      
+      // Convert data URL to buffer
+      const base64Data = imageDataUrl.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      // Send image with caption
+      await this.sock.sendMessage(jid, { 
+        image: buffer,
+        caption: message
+      });
+      
+      console.log(`✓ Message with image sent to ${formattedPhone}`);
+      return { success: true, phone: formattedPhone };
+    } catch (error) {
+      console.error(`✗ Failed to send message with image to ${phone}:`, error);
+      throw error;
+    }
+  }
+
   getQRCode() {
     return this.qrCode;
   }

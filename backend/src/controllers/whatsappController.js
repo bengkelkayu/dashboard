@@ -163,6 +163,78 @@ export async function sendToGuest(req, res) {
   }
 }
 
+// Send QR Code with invitation link to a guest
+export async function sendInvitationWithQR(req, res) {
+  try {
+    const { guestId } = req.params;
+    const { customMessage } = req.body;
+
+    // Get guest
+    const guest = await Guest.findById(guestId);
+    if (!guest) {
+      return res.status(404).json({
+        success: false,
+        error: 'Guest not found'
+      });
+    }
+
+    // Generate or get QR code
+    const { generateQRCodeForGuest } = await import('./qrController.js');
+    let qrData;
+    
+    if (guest.qr_code_url && guest.qr_code_token) {
+      qrData = {
+        qrCode: guest.qr_code_url,
+        token: guest.qr_code_token
+      };
+    } else {
+      qrData = await generateQRCodeForGuest(guestId, guest);
+    }
+
+    // Prepare message
+    let message = customMessage || `Halo ${guest.name}! 🎉\n\nBerikut adalah QR Code untuk absensi acara kami.`;
+    
+    if (guest.invitation_link) {
+      message += `\n\nUndangan digital: ${guest.invitation_link}`;
+    }
+    
+    message += `\n\nSilakan tunjukkan QR Code ini saat check-in.\nTerima kasih! 🙏`;
+
+    // Send message with QR code image
+    await whatsappService.sendMessageWithImage(guest.phone, message, qrData.qrCode);
+
+    // Log to outbox
+    await ThankYouOutbox.create({
+      guest_id: guestId,
+      template_id: null,
+      message: message + '\n[QR Code sent]',
+      phone: guest.phone
+    });
+
+    // Mark as sent immediately
+    const outbox = await ThankYouOutbox.findAll({ guest_id: guestId, status: 'pending' });
+    if (outbox.length > 0) {
+      await ThankYouOutbox.markAsSent(outbox[outbox.length - 1].id);
+    }
+
+    res.json({
+      success: true,
+      message: `QR Code and invitation sent to ${guest.name}`,
+      data: {
+        guest: guest.name,
+        phone: guest.phone,
+        hasInvitationLink: !!guest.invitation_link
+      }
+    });
+  } catch (error) {
+    console.error('Error sending invitation with QR code:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+}
+
 // Send WhatsApp message to all guests (bulk)
 export async function sendToAll(req, res) {
   try {

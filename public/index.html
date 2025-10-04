@@ -99,6 +99,11 @@
                     </select>
                     <span class="error" id="categoryError"></span>
                 </div>
+                <div class="form-group">
+                    <label for="guestInvitationLink">Link Undangan Digital</label>
+                    <input type="url" id="guestInvitationLink" name="invitation_link" placeholder="https://contoh.com/undangan/nama">
+                    <small style="color: #666; font-size: 12px;">Link undangan web digital (opsional)</small>
+                </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancelBtn">Batal</button>
                     <button type="submit" class="btn btn-primary">Simpan</button>
@@ -139,6 +144,13 @@
                 </div>
 
                 <div class="detail-section">
+                    <h4>Link Undangan</h4>
+                    <div id="drawerInvitationLink" style="word-break: break-all;">
+                        <span style="color: #666;">Tidak ada link undangan</span>
+                    </div>
+                </div>
+
+                <div class="detail-section">
                     <h4>Status Kehadiran</h4>
                     <div id="drawerAttendanceStatus"></div>
                 </div>
@@ -148,6 +160,16 @@
                     <div id="drawerAttendanceHistory" class="attendance-history">
                         <p class="empty-text">Belum ada riwayat check-in</p>
                     </div>
+                </div>
+
+                <div class="detail-section">
+                    <h4>Aksi</h4>
+                    <button class="btn btn-primary btn-sm" style="width: 100%; margin-bottom: 8px;" onclick="window.sendInvitationWithQR()">
+                        📱 Kirim QR & Link Undangan
+                    </button>
+                    <button class="btn btn-secondary btn-sm" style="width: 100%;" onclick="window.viewQRCode(window.currentDrawerGuest?.id)">
+                        👁️ Lihat QR Code
+                    </button>
                 </div>
             </div>
         </div>
