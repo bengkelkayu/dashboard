@@ -35,19 +35,19 @@ class Guest {
   }
 
   static async create(guestData) {
-    const { name, phone, category } = guestData;
+    const { name, phone, category, invitation_link } = guestData;
     const result = await query(
-      'INSERT INTO guests (name, phone, category) VALUES ($1, $2, $3) RETURNING *',
-      [name, phone, category]
+      'INSERT INTO guests (name, phone, category, invitation_link) VALUES ($1, $2, $3, $4) RETURNING *',
+      [name, phone, category, invitation_link || null]
     );
     return result.rows[0];
   }
 
   static async update(id, guestData) {
-    const { name, phone, category } = guestData;
+    const { name, phone, category, invitation_link } = guestData;
     const result = await query(
-      'UPDATE guests SET name = $1, phone = $2, category = $3 WHERE id = $4 RETURNING *',
-      [name, phone, category, id]
+      'UPDATE guests SET name = $1, phone = $2, category = $3, invitation_link = $4 WHERE id = $5 RETURNING *',
+      [name, phone, category, invitation_link || null, id]
     );
     return result.rows[0];
   }

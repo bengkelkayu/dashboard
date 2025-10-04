@@ -6,6 +6,7 @@ import {
   getQRCode,
   initialize,
   sendToGuest,
+  sendInvitationWithQR,
   sendToAll,
   disconnect
 } from '../controllers/whatsappController.js';
@@ -30,6 +31,16 @@ router.post('/send/:guestId',
   ],
   validate,
   sendToGuest
+);
+
+// Send invitation with QR code to a single guest
+router.post('/send-invitation/:guestId',
+  [
+    param('guestId').isInt().withMessage('Guest ID must be a valid integer'),
+    body('customMessage').optional().isString().withMessage('Custom message must be a string')
+  ],
+  validate,
+  sendInvitationWithQR
 );
 
 // Send message to all guests (bulk)

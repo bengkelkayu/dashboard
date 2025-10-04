@@ -97,6 +97,7 @@ const whatsappAPI = {
   getQRCode: () => api.get('/whatsapp/qr'),
   initialize: () => api.post('/whatsapp/initialize'),
   sendToGuest: (guestId, data) => api.post(`/whatsapp/send/${guestId}`, data),
+  sendInvitationWithQR: (guestId, data) => api.post(`/whatsapp/send-invitation/${guestId}`, data),
   sendToAll: (data) => api.post('/whatsapp/send-all', data),
   disconnect: () => api.post('/whatsapp/disconnect')
 };
