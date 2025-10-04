@@ -86,15 +86,19 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Create triggers for updated_at
+DROP TRIGGER IF EXISTS update_guests_updated_at ON guests;
 CREATE TRIGGER update_guests_updated_at BEFORE UPDATE ON guests
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_attendance_updated_at ON guest_attendance;
 CREATE TRIGGER update_attendance_updated_at BEFORE UPDATE ON guest_attendance
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_templates_updated_at ON thank_you_templates;
 CREATE TRIGGER update_templates_updated_at BEFORE UPDATE ON thank_you_templates
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_outbox_updated_at ON thank_you_outbox;
 CREATE TRIGGER update_outbox_updated_at BEFORE UPDATE ON thank_you_outbox
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
