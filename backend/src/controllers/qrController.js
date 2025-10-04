@@ -110,7 +110,16 @@ export async function getGuestQRCode(req, res) {
     });
   } catch (error) {
     console.error('Error getting QR code:', error);
-    res.status(500).json({ success: false, error: 'Failed to get QR code' });
+    console.error('Error details:', {
+      guestId: req.params.id,
+      errorMessage: error.message,
+      errorStack: error.stack
+    });
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to get QR code',
+      details: error.message 
+    });
   }
 }
 

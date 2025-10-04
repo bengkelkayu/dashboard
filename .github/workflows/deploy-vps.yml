@@ -1,12 +1,19 @@
 name: Deploy to VPS
 
 on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
   workflow_dispatch:
     inputs:
       deploy_type:
         description: 'Deployment type'
         required: true
-        default: 'full'
+        default: 'app-only'
         type: choice
         options:
           - full
@@ -16,6 +23,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    
+    env:
+      DEPLOY_TYPE: ${{ github.event.inputs.deploy_type || 'app-only' }}
     
     steps:
     - name: Checkout repository
@@ -29,7 +39,7 @@ jobs:
         ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
     
     - name: Deploy to VPS (Full Setup)
-      if: ${{ github.event.inputs.deploy_type == 'full' || github.event.inputs.deploy_type == 'setup-only' }}
+      if: ${{ env.DEPLOY_TYPE == 'full' || env.DEPLOY_TYPE == 'setup-only' }}
       run: |
         ssh -o StrictHostKeyChecking=no root@${{ secrets.VPS_HOST }} << 'ENDSSH'
           set -e
@@ -106,7 +116,7 @@ jobs:
         ENDSSH
     
     - name: Deploy Application
-      if: ${{ github.event.inputs.deploy_type == 'full' || github.event.inputs.deploy_type == 'app-only' }}
+      if: ${{ env.DEPLOY_TYPE == 'full' || env.DEPLOY_TYPE == 'app-only' }}
       run: |
         ssh -o StrictHostKeyChecking=no root@${{ secrets.VPS_HOST }} << 'ENDSSH'
           set -e
@@ -363,7 +373,8 @@ ENVEOF
         echo "Repository: bengkelkayu/dashboard"
         echo "Branch: ${{ github.ref_name }}"
         echo "Commit: ${{ github.sha }}"
-        echo "Deploy Type: ${{ github.event.inputs.deploy_type }}"
+        echo "Deploy Type: ${{ env.DEPLOY_TYPE }}"
+        echo "Trigger: ${{ github.event_name }}"
         echo "Deployed to: http://${{ secrets.VPS_HOST }}"
         echo "Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
         echo "================================================"
