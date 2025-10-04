@@ -205,11 +205,31 @@
         
         // Initialize scanner
         async function initScanner() {
-            html5QrCode = new Html5Qrcode("reader");
-            
             try {
-                // Try to get camera list first
+                // Check if we're in a secure context (HTTPS or localhost)
+                if (!window.isSecureContext && window.location.protocol !== 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                    showResult('error', 'Akses Tidak Aman', 
+                        'Kamera hanya bisa diakses melalui HTTPS. Mohon akses halaman ini melalui https://');
+                    return;
+                }
+
+                html5QrCode = new Html5Qrcode("reader");
+                
+                console.log("Requesting camera permissions...");
+                
+                // Request camera permissions explicitly first
+                try {
+                    await navigator.mediaDevices.getUserMedia({ video: true });
+                    console.log("Camera permission granted");
+                } catch (permErr) {
+                    console.error("Camera permission denied:", permErr);
+                    throw permErr;
+                }
+                
+                // Try to get camera list
+                console.log("Getting available cameras...");
                 const cameras = await Html5Qrcode.getCameras();
+                console.log("Available cameras:", cameras);
                 
                 if (!cameras || cameras.length === 0) {
                     showResult('error', 'Gagal memulai scanner', 
@@ -227,41 +247,56 @@
                 
                 if (backCamera) {
                     cameraConfig = backCamera.id;
+                    console.log("Using back camera:", backCamera.label);
                 } else if (cameras.length > 0) {
                     // Use first available camera
                     cameraConfig = cameras[0].id;
+                    console.log("Using first available camera:", cameras[0].label);
                 } else {
                     // Fallback to facing mode
                     cameraConfig = { facingMode: "environment" };
+                    console.log("Using facing mode: environment");
                 }
                 
+                console.log("Starting scanner with config:", cameraConfig);
                 await html5QrCode.start(
                     cameraConfig,
                     {
                         fps: 10,
-                        qrbox: { width: 250, height: 250 }
+                        qrbox: { width: 250, height: 250 },
+                        aspectRatio: 1.0
                     },
                     onScanSuccess,
                     onScanError
                 );
-                console.log("Scanner started successfully");
+                console.log("✓ Scanner started successfully");
+                showResult('success', 'Scanner Aktif', 'Kamera berhasil diaktifkan. Arahkan kamera ke QR code.');
+                setTimeout(hideResult, 2000);
             } catch (err) {
                 console.error("Failed to start scanner:", err);
                 
                 // More helpful error messages
                 let errorMessage = 'Pastikan Anda telah memberikan izin akses kamera.';
+                let errorTitle = 'Gagal memulai scanner';
                 
                 if (err.name === 'NotAllowedError' || err.message.includes('Permission')) {
-                    errorMessage = 'Akses kamera ditolak. Silakan berikan izin akses kamera di pengaturan browser Anda.';
+                    errorTitle = 'Izin Kamera Ditolak';
+                    errorMessage = 'Silakan berikan izin akses kamera di pengaturan browser Anda. Klik ikon kunci/kamera di address bar browser.';
                 } else if (err.name === 'NotFoundError' || err.message.includes('not found')) {
-                    errorMessage = 'Kamera tidak ditemukan. Pastikan perangkat Anda memiliki kamera.';
+                    errorTitle = 'Kamera Tidak Ditemukan';
+                    errorMessage = 'Pastikan perangkat Anda memiliki kamera dan tidak sedang digunakan aplikasi lain.';
+                } else if (err.name === 'NotReadableError' || err.message.includes('not readable')) {
+                    errorTitle = 'Kamera Tidak Dapat Diakses';
+                    errorMessage = 'Kamera sedang digunakan aplikasi lain atau terjadi error hardware. Tutup aplikasi lain yang menggunakan kamera.';
                 } else if (err.message.includes('not supported')) {
-                    errorMessage = 'Browser tidak mendukung akses kamera. Coba gunakan browser lain seperti Chrome, Firefox, atau Safari.';
-                } else if (err.message.includes('secure context')) {
-                    errorMessage = 'Halaman harus diakses melalui HTTPS. Pastikan URL menggunakan https://.';
+                    errorTitle = 'Browser Tidak Didukung';
+                    errorMessage = 'Browser tidak mendukung akses kamera. Gunakan Chrome, Firefox, Safari, atau Edge versi terbaru.';
+                } else if (err.message.includes('secure context') || err.message.includes('https')) {
+                    errorTitle = 'Akses Tidak Aman';
+                    errorMessage = 'Halaman harus diakses melalui HTTPS untuk menggunakan kamera. Pastikan URL menggunakan https://.';
                 }
                 
-                showResult('error', 'Gagal memulai scanner', errorMessage + ' Error: ' + err.message);
+                showResult('error', errorTitle, errorMessage + '<br><br><small>Error detail: ' + err.message + '</small>');
             }
         }
         
