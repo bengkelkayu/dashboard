@@ -210,14 +210,32 @@ ENVEOF
             fi
           fi
           
-          # Run migrations
-          echo "🗄️  Running database migrations..."
-          if npm run migrate; then
-            echo "✓ Migrations completed successfully"
+          # Verify database schema before migrations
+          echo "🔍 Verifying database schema..."
+          if npm run verify-schema; then
+            echo "✓ Schema verification passed - no migrations needed"
           else
-            echo "⚠️  Migrations failed or already applied"
-            echo "Checking migration status..."
-            psql -U wedding_user -d wedding_dashboard -c "\dt" 2>/dev/null || echo "Unable to check database tables"
+            echo "⚠️  Schema verification found issues - running migrations..."
+            
+            # Run migrations
+            echo "🗄️  Running database migrations..."
+            if npm run migrate; then
+              echo "✓ Migrations completed successfully"
+              
+              # Verify schema again after migrations
+              echo "🔍 Re-verifying database schema..."
+              if npm run verify-schema; then
+                echo "✅ Schema verification passed after migrations!"
+              else
+                echo "❌ Schema verification failed after migrations - please check manually"
+                exit 1
+              fi
+            else
+              echo "❌ Migrations failed"
+              echo "Checking migration status..."
+              psql -U wedding_user -d wedding_dashboard -c "\dt" 2>/dev/null || echo "Unable to check database tables"
+              exit 1
+            fi
           fi
           
           # Configure Nginx
@@ -358,10 +376,80 @@ ENVEOF
           echo ""
           echo "📜 Recent API logs:"
           pm2 logs wedding-api --lines 20 --nostream
+          
+          echo ""
+          echo "🔍 Verifying database schema post-deployment..."
+          cd /root/dashboard
+          if npm run verify-schema; then
+            echo "✅ Database schema verification passed!"
+          else
+            echo "⚠️  Database schema verification failed - check logs above"
+          fi
         ENDSSH
         
         echo ""
         echo "✅ Deployment verification completed successfully!"
+    
+    - name: Test QR Code Functionality
+      run: |
+        echo ""
+        echo "🔍 Testing QR Code and WhatsApp API functionality..."
+        
+        # Test health endpoint
+        echo "Testing health endpoint..."
+        if curl -f http://${{ secrets.VPS_HOST }}/health 2>/dev/null; then
+          echo "✓ Health check passed"
+        else
+          echo "⚠️  Health check failed"
+        fi
+        
+        # Check if WhatsApp API endpoint is accessible
+        echo ""
+        echo "Testing WhatsApp API availability..."
+        if curl -f http://${{ secrets.VPS_HOST }}/api/whatsapp/status 2>/dev/null; then
+          echo "✓ WhatsApp API is accessible"
+        else
+          echo "ℹ️  WhatsApp API may not be fully configured (this is normal on first deployment)"
+        fi
+        
+        echo ""
+        echo "📋 QR Code Feature Checklist:"
+        ssh -o StrictHostKeyChecking=no root@${{ secrets.VPS_HOST }} << 'ENDSSH'
+          cd /root/dashboard
+          
+          # Check if QR code columns exist in database
+          echo "Checking database schema for QR code columns..."
+          QR_COLUMNS=$(psql -U wedding_user -d wedding_dashboard -tAc "
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name='guests' 
+            AND column_name IN ('qr_code_token', 'qr_code_url', 'qr_code_generated_at')
+            ORDER BY column_name
+          " 2>/dev/null)
+          
+          if [ -n "$QR_COLUMNS" ]; then
+            echo "✅ QR Code columns found in database:"
+            echo "$QR_COLUMNS" | while read col; do echo "   ✓ $col"; done
+          else
+            echo "⚠️  QR Code columns not found - migrations may need to run"
+          fi
+          
+          # Check if invitation_link column exists
+          echo ""
+          echo "Checking for invitation_link column..."
+          INV_COLUMN=$(psql -U wedding_user -d wedding_dashboard -tAc "
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name='guests' 
+            AND column_name='invitation_link'
+          " 2>/dev/null)
+          
+          if [ -n "$INV_COLUMN" ]; then
+            echo "✅ invitation_link column found"
+          else
+            echo "⚠️  invitation_link column not found"
+          fi
+        ENDSSH
     
     - name: Post-Deployment Summary
       if: always()
