@@ -108,4 +108,18 @@ const qrAPI = {
   scanQR: (qrData) => api.post('/qr/scan-qr', { qrData })
 };
 
-export { guestAPI, attendanceAPI, thankYouAPI, whatsappAPI, qrAPI };
+// Invitation Template API
+const invitationTemplateAPI = {
+  getAll: () => api.get('/invitation-templates'),
+  getById: (id) => api.get(`/invitation-templates/${id}`),
+  create: (templateData) => api.post('/invitation-templates', templateData),
+  update: (id, templateData) => api.patch(`/invitation-templates/${id}`, templateData),
+  delete: (id) => api.delete(`/invitation-templates/${id}`),
+  toggle: (id, isEnabled) => api.patch(`/invitation-templates/${id}/toggle`, { is_enabled: isEnabled }),
+  preview: (messageTemplate, sampleData) => api.post('/invitation-templates/preview', { 
+    message_template: messageTemplate, 
+    sample_data: sampleData 
+  })
+};
+
+export { guestAPI, attendanceAPI, thankYouAPI, whatsappAPI, qrAPI, invitationTemplateAPI };

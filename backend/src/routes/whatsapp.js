@@ -36,7 +36,8 @@ router.post('/send/:guestId',
 router.post('/send-invitation/:guestId',
   [
     param('guestId').isInt().withMessage('Guest ID must be a valid integer'),
-    body('customMessage').optional().isString().withMessage('Custom message must be a string')
+    body('customMessage').optional().isString().withMessage('Custom message must be a string'),
+    body('templateId').optional().isInt().withMessage('Template ID must be an integer')
   ],
   validate,
   sendInvitationWithQR

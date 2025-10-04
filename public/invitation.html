@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invitation Templates - Wedding Guest Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="thankyou.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📨 Invitation Templates</h1>
+            <div class="header-actions">
+                <a href="index.html" class="btn btn-secondary">← Kembali ke Dashboard</a>
+                <button id="addTemplateBtn" class="btn btn-primary">+ Tambah Template</button>
+            </div>
+        </header>
+
+        <div class="templates-list">
+            <div id="templatesContainer">
+                <!-- Templates will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Form -->
+    <div id="templateModal" class="modal">
+        <div class="modal-content modal-improved">
+            <div class="modal-header">
+                <h2 id="modalTitle">Tambah Template</h2>
+                <span class="close">&times;</span>
+            </div>
+            <form id="templateForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="templateName">
+                            <span class="label-icon">📝</span> Nama Template <span class="required">*</span>
+                        </label>
+                        <input type="text" id="templateName" name="name" required placeholder="Contoh: Undangan Formal">
+                        <span class="error" id="nameError"></span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="messageTemplate">
+                        <span class="label-icon">💬</span> Pesan Template <span class="required">*</span>
+                    </label>
+                    <textarea id="messageTemplate" name="message_template" rows="8" required 
+                              placeholder="Contoh: Halo {Name}! 🎉&#10;&#10;Kami mengundang Anda untuk hadir di acara pernikahan kami.&#10;&#10;{invitation_link}&#10;&#10;Terlampir QR Code untuk absensi."></textarea>
+                    <span class="error" id="messageError"></span>
+                    
+                    <div class="placeholder-info">
+                        <strong>💡 Placeholder yang tersedia:</strong>
+                        <div class="placeholder-list">
+                            <div class="placeholder-item">
+                                <code>{Name}</code>
+                                <span>Nama tamu</span>
+                            </div>
+                            <div class="placeholder-item">
+                                <code>{name}</code>
+                                <span>Nama tamu (lowercase)</span>
+                            </div>
+                            <div class="placeholder-item">
+                                <code>{phone}</code>
+                                <span>Nomor telepon tamu</span>
+                            </div>
+                            <div class="placeholder-item">
+                                <code>{category}</code>
+                                <span>Kategori tamu (VVIP/VIP/Regular)</span>
+                            </div>
+                            <div class="placeholder-item">
+                                <code>{invitation_link}</code>
+                                <span>Link undangan digital (jika ada)</span>
+                            </div>
+                        </div>
+                        <p class="help-text">
+                            ℹ️ QR Code akan otomatis dilampirkan saat mengirim undangan
+                        </p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="isEnabled" name="is_enabled" checked>
+                        <span>✓ Aktifkan template ini</span>
+                    </label>
+                </div>
+
+                <div class="preview-section">
+                    <h3>👁️ Preview Pesan</h3>
+                    <div id="previewMessage" class="preview-box">
+                        Ketik pesan untuk melihat preview...
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm" id="previewBtn">
+                        🔄 Update Preview
+                    </button>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">Batal</button>
+                    <button type="submit" class="btn btn-primary">💾 Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="api-client.js"></script>
+    <script type="module" src="invitation.js"></script>
+</body>
+</html>

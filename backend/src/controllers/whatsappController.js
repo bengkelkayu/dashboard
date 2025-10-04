@@ -172,7 +172,7 @@ export async function sendToGuest(req, res) {
 export async function sendInvitationWithQR(req, res) {
   try {
     const { guestId } = req.params;
-    const { customMessage } = req.body;
+    const { customMessage, templateId } = req.body;
 
     // Get guest
     const guest = await Guest.findById(guestId);
@@ -209,8 +209,28 @@ export async function sendInvitationWithQR(req, res) {
     
     if (customMessage) {
       message = customMessage;
+    } else if (templateId) {
+      // Use invitation template
+      const InvitationTemplate = (await import('../models/InvitationTemplate.js')).default;
+      const template = await InvitationTemplate.findById(templateId);
+      
+      if (!template) {
+        return res.status(404).json({
+          success: false,
+          error: 'Invitation template not found'
+        });
+      }
+      
+      // Render template with guest data
+      message = InvitationTemplate.renderMessage(template.message_template, {
+        Name: guest.name,
+        name: guest.name,
+        phone: guest.phone,
+        category: guest.category,
+        invitation_link: guest.invitation_link || 'Tidak ada link undangan'
+      });
     } else {
-      // Build invitation message
+      // Build default invitation message
       message = `Halo ${guest.name}! 🎉\n\nKami mengundang Anda untuk hadir di acara pernikahan kami.`;
       
       if (guest.invitation_link) {
@@ -233,7 +253,7 @@ export async function sendInvitationWithQR(req, res) {
     // Log to outbox (Note: Using ThankYouOutbox table for message logging)
     await ThankYouOutbox.create({
       guest_id: guestId,
-      template_id: null,
+      template_id: templateId || null,
       message: message + '\n[QR Code sent]',
       phone: guest.phone
     });

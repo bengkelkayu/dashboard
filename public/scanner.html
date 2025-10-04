@@ -169,8 +169,35 @@
             html5QrCode = new Html5Qrcode("reader");
             
             try {
+                // Try to get camera list first
+                const cameras = await Html5Qrcode.getCameras();
+                
+                if (!cameras || cameras.length === 0) {
+                    showResult('error', 'Gagal memulai scanner', 
+                        'Tidak ada kamera yang terdeteksi. Pastikan browser memiliki izin akses kamera dan perangkat memiliki kamera.');
+                    return;
+                }
+                
+                // Try environment camera first, fallback to any available camera
+                let cameraConfig;
+                const backCamera = cameras.find(camera => 
+                    camera.label.toLowerCase().includes('back') || 
+                    camera.label.toLowerCase().includes('rear') ||
+                    camera.label.toLowerCase().includes('environment')
+                );
+                
+                if (backCamera) {
+                    cameraConfig = backCamera.id;
+                } else if (cameras.length > 0) {
+                    // Use first available camera
+                    cameraConfig = cameras[0].id;
+                } else {
+                    // Fallback to facing mode
+                    cameraConfig = { facingMode: "environment" };
+                }
+                
                 await html5QrCode.start(
-                    { facingMode: "environment" },
+                    cameraConfig,
                     {
                         fps: 10,
                         qrbox: { width: 250, height: 250 }
@@ -181,8 +208,21 @@
                 console.log("Scanner started successfully");
             } catch (err) {
                 console.error("Failed to start scanner:", err);
-                showResult('error', 'Gagal memulai scanner', 
-                    'Pastikan Anda telah memberikan izin akses kamera. Error: ' + err);
+                
+                // More helpful error messages
+                let errorMessage = 'Pastikan Anda telah memberikan izin akses kamera.';
+                
+                if (err.name === 'NotAllowedError' || err.message.includes('Permission')) {
+                    errorMessage = 'Akses kamera ditolak. Silakan berikan izin akses kamera di pengaturan browser Anda.';
+                } else if (err.name === 'NotFoundError' || err.message.includes('not found')) {
+                    errorMessage = 'Kamera tidak ditemukan. Pastikan perangkat Anda memiliki kamera.';
+                } else if (err.message.includes('not supported')) {
+                    errorMessage = 'Browser tidak mendukung akses kamera. Coba gunakan browser lain seperti Chrome, Firefox, atau Safari.';
+                } else if (err.message.includes('secure context')) {
+                    errorMessage = 'Halaman harus diakses melalui HTTPS. Pastikan URL menggunakan https://.';
+                }
+                
+                showResult('error', 'Gagal memulai scanner', errorMessage + ' Error: ' + err.message);
             }
         }
         

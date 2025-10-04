@@ -1,16 +1,18 @@
 // Import API client
-import { guestAPI, attendanceAPI, whatsappAPI, thankYouAPI, qrAPI } from './api-client.js';
+import { guestAPI, attendanceAPI, whatsappAPI, thankYouAPI, qrAPI, invitationTemplateAPI } from './api-client.js';
 
 // Guest data storage
 let guests = [];
 let editingId = null;
 let templates = [];
+let invitationTemplates = [];
 
 // Load data from API on page load
 document.addEventListener('DOMContentLoaded', async () => {
     await loadGuests();
     await updateStats();
     await loadTemplates();
+    await loadInvitationTemplates();
     await checkWhatsAppStatus();
     setupEventListeners();
     
@@ -346,6 +348,7 @@ async function openGuestDrawer(id) {
         const response = await guestAPI.getById(id);
         const guest = response.data;
         currentDrawerGuest = guest;
+        window.currentDrawerGuest = guest;
         
         // Populate drawer
         document.getElementById('drawerGuestName').textContent = guest.name;
@@ -408,6 +411,7 @@ function closeGuestDrawer() {
     document.getElementById('guestDrawer').classList.remove('open');
     document.body.style.overflow = '';
     currentDrawerGuest = null;
+    window.currentDrawerGuest = null;
     cancelCategoryEdit();
 }
 
@@ -460,6 +464,7 @@ window.openGuestDrawer = openGuestDrawer;
 window.editCategory = editCategory;
 window.cancelCategoryEdit = cancelCategoryEdit;
 window.saveCategoryEdit = saveCategoryEdit;
+window.currentDrawerGuest = null;
 
 // ==================== WhatsApp Functions ====================
 
@@ -692,6 +697,17 @@ function closeQRModal() {
     window.currentQRData = null;
 }
 
+// Load invitation templates
+async function loadInvitationTemplates() {
+    try {
+        const response = await invitationTemplateAPI.getAll();
+        invitationTemplates = response.data;
+    } catch (error) {
+        console.error('Error loading invitation templates:', error);
+        invitationTemplates = [];
+    }
+}
+
 // Send invitation with QR code to current drawer guest
 async function sendInvitationWithQR() {
     if (!window.currentDrawerGuest) {
@@ -701,12 +717,41 @@ async function sendInvitationWithQR() {
     
     const guest = window.currentDrawerGuest;
     
+    // Show template selector if there are templates
+    let templateId = null;
+    if (invitationTemplates.length > 0) {
+        const templateOptions = invitationTemplates
+            .filter(t => t.is_enabled)
+            .map(t => `${t.id}. ${t.name}`)
+            .join('\n');
+        
+        const templateChoice = prompt(
+            `Pilih template undangan:\n\n${templateOptions}\n\nMasukkan nomor template (atau kosongkan untuk template default):`,
+            ''
+        );
+        
+        if (templateChoice === null) {
+            // User cancelled
+            return;
+        }
+        
+        if (templateChoice && templateChoice.trim() !== '') {
+            templateId = parseInt(templateChoice.trim());
+            const selectedTemplate = invitationTemplates.find(t => t.id === templateId);
+            if (!selectedTemplate) {
+                alert('Template tidak valid');
+                return;
+            }
+        }
+    }
+    
     if (!confirm(`Kirim QR Code dan link undangan ke ${guest.name} (${guest.phone})?`)) {
         return;
     }
     
     try {
-        const response = await whatsappAPI.sendInvitationWithQR(guest.id, {});
+        const payload = templateId ? { templateId } : {};
+        const response = await whatsappAPI.sendInvitationWithQR(guest.id, payload);
         alert(`✓ QR Code dan undangan berhasil dikirim ke ${guest.name}!`);
     } catch (error) {
         console.error('Error sending invitation with QR:', error);
