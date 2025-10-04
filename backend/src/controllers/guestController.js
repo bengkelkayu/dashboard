@@ -56,7 +56,7 @@ export const getGuestById = async (req, res) => {
 
 export const createGuest = async (req, res) => {
   try {
-    const { name, phone, category } = req.body;
+    const { name, phone, category, invitation_link } = req.body;
     
     // Check if phone already exists
     const existing = await Guest.findByPhone(phone);
@@ -64,7 +64,7 @@ export const createGuest = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Phone number already exists' });
     }
     
-    const guest = await Guest.create({ name, phone, category });
+    const guest = await Guest.create({ name, phone, category, invitation_link });
     
     // Generate QR code for the new guest
     try {
@@ -96,7 +96,7 @@ export const createGuest = async (req, res) => {
 export const updateGuest = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, phone, category } = req.body;
+    const { name, phone, category, invitation_link } = req.body;
     
     const oldGuest = await Guest.findById(id);
     if (!oldGuest) {
@@ -111,7 +111,7 @@ export const updateGuest = async (req, res) => {
       }
     }
     
-    const guest = await Guest.update(id, { name, phone, category });
+    const guest = await Guest.update(id, { name, phone, category, invitation_link });
     
     // Create audit log for category change
     if (oldGuest.category !== category) {

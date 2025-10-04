@@ -16,7 +16,8 @@ const router = express.Router();
 const guestValidation = [
   body('name').trim().notEmpty().withMessage('Name is required').isLength({ min: 3 }).withMessage('Name must be at least 3 characters'),
   body('phone').trim().notEmpty().withMessage('Phone is required').matches(/^62[0-9]{9,13}$/).withMessage('Phone must start with 62 and be 11-15 digits'),
-  body('category').isIn(['VVIP', 'VIP', 'Regular']).withMessage('Category must be VVIP, VIP, or Regular')
+  body('category').isIn(['VVIP', 'VIP', 'Regular']).withMessage('Category must be VVIP, VIP, or Regular'),
+  body('invitation_link').optional().trim()
 ];
 
 const idValidation = [
