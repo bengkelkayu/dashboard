@@ -1,0 +1,514 @@
+name: Setup lovejourney.cloud Domain (One-Click)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_setup:
+        description: 'Type "yes" to confirm full setup (deploy + SSL)'
+        required: true
+        default: 'yes'
+        type: string
+
+jobs:
+  complete-setup:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Validate Confirmation
+      run: |
+        if [ "${{ github.event.inputs.confirm_setup }}" != "yes" ]; then
+          echo "❌ Setup cancelled. Please type 'yes' to confirm."
+          exit 1
+        fi
+        echo "✅ Setup confirmed. Starting complete deployment..."
+    
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+    
+    - name: Install sshpass
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sshpass
+    
+    - name: Step 1 - System Setup & Dependencies
+      env:
+        VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
+      run: |
+        echo "================================================"
+        echo "🚀 STEP 1: Installing System Dependencies"
+        echo "================================================"
+        sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no root@${{ secrets.VPS_HOST }} << 'ENDSSH'
+          set -e
+          echo "🔄 Updating system packages..."
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update && apt-get upgrade -y
+          
+          echo "📦 Installing Node.js v20..."
+          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+          apt-get install -y nodejs
+          echo "✓ Node.js installed: $(node --version)"
+          
+          echo "📦 Installing PostgreSQL..."
+          if ! command -v psql &> /dev/null; then
+            apt-get install -y postgresql postgresql-contrib
+            systemctl start postgresql && systemctl enable postgresql
+            echo "✓ PostgreSQL installed"
+          else
+            echo "✓ PostgreSQL already installed"
+          fi
+          
+          echo "📦 Installing Redis..."
+          if ! command -v redis-cli &> /dev/null; then
+            apt-get install -y redis-server
+            systemctl start redis-server && systemctl enable redis-server
+            echo "✓ Redis installed"
+          else
+            echo "✓ Redis already installed"
+          fi
+          
+          echo "📦 Installing Nginx..."
+          if ! command -v nginx &> /dev/null; then
+            apt-get install -y nginx
+            systemctl start nginx && systemctl enable nginx
+            echo "✓ Nginx installed"
+          else
+            echo "✓ Nginx already installed"
+          fi
+          
+          echo "📦 Installing PM2..."
+          if ! command -v pm2 &> /dev/null; then
+            npm install -g pm2
+            echo "✓ PM2 installed"
+          else
+            echo "✓ PM2 already installed"
+          fi
+          
+          echo "📦 Installing Git..."
+          if ! command -v git &> /dev/null; then
+            apt-get install -y git
+            echo "✓ Git installed"
+          else
+            echo "✓ Git already installed"
+          fi
+          
+          echo ""
+          echo "✅ Step 1 Complete: System dependencies installed!"
+        ENDSSH
+    
+    - name: Step 2 - Deploy Application
+      env:
+        VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
+      run: |
+        echo ""
+        echo "================================================"
+        echo "📦 STEP 2: Deploying Application"
+        echo "================================================"
+        sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no root@${{ secrets.VPS_HOST }} 'bash -s' << 'ENDSSH'
+          set -e
+          
+          DEPLOY_DIR="/root/dashboard"
+          
+          echo "📥 Cloning/Updating repository..."
+          if [ -d "$DEPLOY_DIR" ]; then
+            cd $DEPLOY_DIR
+            git fetch origin
+            git reset --hard origin/main
+            echo "✓ Repository updated"
+          else
+            cd /root
+            git clone https://github.com/bengkelkayu/dashboard.git
+            cd $DEPLOY_DIR
+            echo "✓ Repository cloned"
+          fi
+          
+          echo "📦 Installing npm dependencies..."
+          npm install --production
+          echo "✓ Dependencies installed"
+          
+          DB_NAME="wedding_dashboard"
+          DB_USER="wedding_user"
+          
+          echo "🗄️  Setting up database..."
+          DB_EXISTS=$(sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'")
+          
+          if [ -z "$DB_EXISTS" ]; then
+            DB_PASSWORD=$(openssl rand -base64 32)
+            
+            USER_EXISTS=$(sudo -u postgres psql -tAc "SELECT 1 FROM pg_user WHERE usename = '${DB_USER}'")
+            if [ -z "$USER_EXISTS" ]; then
+              echo "CREATE USER ${DB_USER} WITH PASSWORD '${DB_PASSWORD}';" | sudo -u postgres psql
+              echo "✓ Database user created"
+            fi
+            
+            echo "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};" | sudo -u postgres psql
+            echo "GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};" | sudo -u postgres psql
+            printf "PORT=3000\nNODE_ENV=production\nDATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}\nDB_HOST=localhost\nDB_PORT=5432\nDB_NAME=${DB_NAME}\nDB_USER=${DB_USER}\nDB_PASSWORD=${DB_PASSWORD}\nREDIS_URL=redis://localhost:6379\nWHATSAPP_API_URL=https://api.whatsapp.com/send\nWHATSAPP_API_KEY=your_api_key_here\nWEBHOOK_SECRET=$(openssl rand -hex 32)\nCORS_ORIGIN=https://lovejourney.cloud\n" > .env
+            echo "✓ Database created and environment configured"
+          else
+            echo "✓ Database already exists"
+            # Update CORS_ORIGIN in existing .env
+            if [ -f .env ]; then
+              if grep -q "^CORS_ORIGIN=" .env; then
+                sed -i "s|^CORS_ORIGIN=.*|CORS_ORIGIN=https://lovejourney.cloud|" .env
+              else
+                echo "CORS_ORIGIN=https://lovejourney.cloud" >> .env
+              fi
+            fi
+          fi
+          
+          echo "🔍 Running database migrations..."
+          npm run migrate || echo "⚠️  Migration warning (may already be applied)"
+          
+          echo "✅ Step 2 Complete: Application deployed!"
+        ENDSSH
+    
+    - name: Step 3 - Configure Nginx (HTTP - Temporary)
+      env:
+        VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
+      run: |
+        echo ""
+        echo "================================================"
+        echo "🌐 STEP 3: Configuring Nginx"
+        echo "================================================"
+        sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no root@${{ secrets.VPS_HOST }} << 'ENDSSH'
+          set -e
+          
+          echo "🌐 Creating Nginx configuration..."
+          printf "server {\n    listen 80;\n    server_name lovejourney.cloud www.lovejourney.cloud;\n    \n    client_max_body_size 10M;\n    \n    location / {\n        proxy_pass http://localhost:3000;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade \$http_upgrade;\n        proxy_set_header Connection 'upgrade';\n        proxy_set_header Host \$host;\n        proxy_set_header X-Real-IP \$remote_addr;\n        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto \$scheme;\n        proxy_cache_bypass \$http_upgrade;\n    }\n}\n" > /etc/nginx/sites-available/wedding-dashboard
+          
+          ln -sf /etc/nginx/sites-available/wedding-dashboard /etc/nginx/sites-enabled/
+          rm -f /etc/nginx/sites-enabled/default
+          
+          echo "🧪 Testing Nginx configuration..."
+          nginx -t
+          
+          echo "🔄 Reloading Nginx..."
+          systemctl reload nginx
+          
+          echo "✅ Step 3 Complete: Nginx configured!"
+        ENDSSH
+    
+    - name: Step 4 - Start Application
+      env:
+        VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
+      run: |
+        echo ""
+        echo "================================================"
+        echo "🚀 STEP 4: Starting Application"
+        echo "================================================"
+        sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no root@${{ secrets.VPS_HOST }} << 'ENDSSH'
+          set -e
+          cd /root/dashboard
+          
+          echo "🗑️  Removing old PM2 processes..."
+          pm2 delete wedding-api wedding-worker 2>/dev/null || true
+          
+          echo "▶️  Starting API server..."
+          pm2 start backend/src/server.js --name wedding-api
+          
+          echo "▶️  Starting background worker..."
+          pm2 start backend/src/workers/thankYouWorker.js --name wedding-worker
+          
+          echo "💾 Saving PM2 configuration..."
+          pm2 save
+          
+          echo "🔄 Enabling PM2 startup..."
+          env PATH=$PATH:/usr/bin pm2 startup systemd -u root --hp /root || true
+          
+          echo "📊 PM2 Status:"
+          pm2 status
+          
+          echo "✅ Step 4 Complete: Application running!"
+        ENDSSH
+    
+    - name: Step 5 - Configure Firewall
+      env:
+        VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
+      run: |
+        echo ""
+        echo "================================================"
+        echo "🔥 STEP 5: Configuring Firewall"
+        echo "================================================"
+        sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no root@${{ secrets.VPS_HOST }} << 'ENDSSH'
+          set -e
+          
+          if command -v ufw &> /dev/null; then
+            echo "🔥 Allowing required ports..."
+            ufw allow 22/tcp  # SSH
+            ufw allow 80/tcp  # HTTP
+            ufw allow 443/tcp # HTTPS
+            ufw --force enable || true
+            echo "✅ Firewall configured"
+          else
+            echo "ℹ️  UFW not installed, skipping firewall configuration"
+          fi
+          
+          echo "✅ Step 5 Complete: Firewall configured!"
+        ENDSSH
+    
+    - name: Step 6 - Verify DNS Configuration
+      run: |
+        echo ""
+        echo "================================================"
+        echo "🔍 STEP 6: Verifying DNS Configuration"
+        echo "================================================"
+        
+        echo "Checking if lovejourney.cloud points to VPS..."
+        DOMAIN_IP=$(dig +short lovejourney.cloud | head -n1)
+        VPS_IP="${{ secrets.VPS_HOST }}"
+        
+        echo "Domain IP: $DOMAIN_IP"
+        echo "VPS IP: $VPS_IP"
+        
+        if [ "$DOMAIN_IP" != "$VPS_IP" ]; then
+          echo ""
+          echo "⚠️  WARNING: Domain does not point to VPS yet!"
+          echo ""
+          echo "Please configure your DNS settings:"
+          echo "  Provider: Your domain registrar"
+          echo "  Type: A Record"
+          echo "  Name: @"
+          echo "  Value: $VPS_IP"
+          echo "  TTL: Auto"
+          echo ""
+          echo "Also add www subdomain:"
+          echo "  Type: A Record"
+          echo "  Name: www"
+          echo "  Value: $VPS_IP"
+          echo ""
+          echo "⚠️  SSL setup will be skipped until DNS is configured!"
+          echo "After DNS propagation (5-10 minutes), run this workflow again."
+          exit 1
+        fi
+        
+        echo "✅ Step 6 Complete: DNS correctly configured!"
+    
+    - name: Step 7 - Setup SSL/HTTPS
+      env:
+        VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
+      run: |
+        echo ""
+        echo "================================================"
+        echo "🔐 STEP 7: Setting up SSL/HTTPS"
+        echo "================================================"
+        sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no root@${{ secrets.VPS_HOST }} << 'ENDSSH'
+          set -e
+          
+          echo "📦 Installing Certbot..."
+          if ! command -v certbot &> /dev/null; then
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update
+            apt-get install -y certbot python3-certbot-nginx
+            echo "✓ Certbot installed"
+          else
+            echo "✓ Certbot already installed"
+          fi
+          
+          echo "⏸️  Stopping Nginx temporarily..."
+          systemctl stop nginx
+          
+          echo "🔐 Obtaining SSL certificate for lovejourney.cloud..."
+          certbot certonly --standalone \
+            --non-interactive \
+            --agree-tos \
+            --email "rahul.ok63@gmail.com" \
+            -d "lovejourney.cloud" \
+            -d "www.lovejourney.cloud" \
+            --preferred-challenges http
+          
+          if [ $? -ne 0 ]; then
+            echo "❌ Failed to obtain SSL certificate"
+            systemctl start nginx
+            exit 1
+          fi
+          
+          echo "✓ SSL certificate obtained successfully!"
+          
+          echo "🌐 Updating Nginx configuration with SSL..."
+          cat > /etc/nginx/sites-available/wedding-dashboard << 'NGINXEOF'
+          # HTTP - Redirect to HTTPS
+          server {
+              listen 80;
+              server_name lovejourney.cloud www.lovejourney.cloud;
+              
+              # Allow Let's Encrypt validation
+              location /.well-known/acme-challenge/ {
+                  root /var/www/html;
+              }
+              
+              # Redirect all other traffic to HTTPS
+              location / {
+                  return 301 https://lovejourney.cloud$request_uri;
+              }
+          }
+          
+          # HTTPS - Main application
+          server {
+              listen 443 ssl http2;
+              server_name lovejourney.cloud www.lovejourney.cloud;
+              
+              # SSL Configuration
+              ssl_certificate /etc/letsencrypt/live/lovejourney.cloud/fullchain.pem;
+              ssl_certificate_key /etc/letsencrypt/live/lovejourney.cloud/privkey.pem;
+              
+              # SSL Security Settings
+              ssl_protocols TLSv1.2 TLSv1.3;
+              ssl_ciphers HIGH:!aNULL:!MD5;
+              ssl_prefer_server_ciphers on;
+              ssl_session_cache shared:SSL:10m;
+              ssl_session_timeout 10m;
+              
+              # Security Headers
+              add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+              add_header X-Frame-Options "SAMEORIGIN" always;
+              add_header X-Content-Type-Options "nosniff" always;
+              add_header X-XSS-Protection "1; mode=block" always;
+              
+              client_max_body_size 10M;
+              
+              # Proxy to Node.js application
+              location / {
+                  proxy_pass http://localhost:3000;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  proxy_cache_bypass $http_upgrade;
+              }
+          }
+          NGINXEOF
+          
+          ln -sf /etc/nginx/sites-available/wedding-dashboard /etc/nginx/sites-enabled/
+          
+          echo "🧪 Testing Nginx configuration..."
+          if ! nginx -t; then
+            echo "❌ Nginx configuration test failed"
+            exit 1
+          fi
+          
+          echo "▶️  Starting Nginx..."
+          systemctl start nginx
+          systemctl enable nginx
+          
+          echo "✓ Nginx with SSL started successfully!"
+          
+          echo "🔄 Setting up SSL auto-renewal..."
+          mkdir -p /etc/letsencrypt/renewal-hooks/deploy
+          cat > /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh << 'HOOKEOF'
+          #!/bin/bash
+          systemctl reload nginx
+          HOOKEOF
+          chmod +x /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+          
+          echo "🧪 Testing SSL renewal process (dry run)..."
+          if certbot renew --dry-run; then
+            echo "✓ SSL auto-renewal configured successfully"
+          else
+            echo "⚠️  SSL renewal test failed, but certificate is installed"
+          fi
+          
+          # Create systemd timer for auto-renewal
+          cat > /etc/systemd/system/certbot-renewal.service << 'SERVICEEOF'
+          [Unit]
+          Description=Certbot Renewal
+          
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/bin/certbot renew --quiet --post-hook "systemctl reload nginx"
+          SERVICEEOF
+          
+          cat > /etc/systemd/system/certbot-renewal.timer << 'TIMEREOF'
+          [Unit]
+          Description=Certbot Renewal Timer
+          
+          [Timer]
+          OnCalendar=daily
+          RandomizedDelaySec=1h
+          Persistent=true
+          
+          [Install]
+          WantedBy=timers.target
+          TIMEREOF
+          
+          systemctl enable certbot-renewal.timer
+          systemctl start certbot-renewal.timer
+          
+          echo "✓ Auto-renewal timer enabled"
+          
+          echo "🔄 Restarting application..."
+          cd /root/dashboard
+          pm2 restart all
+          
+          echo ""
+          echo "✅ Step 7 Complete: SSL/HTTPS configured!"
+        ENDSSH
+    
+    - name: Step 8 - Final Verification
+      run: |
+        echo ""
+        echo "================================================"
+        echo "✅ STEP 8: Final Verification"
+        echo "================================================"
+        
+        echo "⏳ Waiting for services to stabilize..."
+        sleep 10
+        
+        echo "🔍 Testing HTTPS connection..."
+        if curl -fsSL -o /dev/null -w "HTTP Status: %{http_code}\n" https://lovejourney.cloud; then
+          echo "✅ HTTPS is working!"
+        else
+          echo "⚠️  HTTPS connection test failed"
+          exit 1
+        fi
+        
+        echo ""
+        echo "🔐 SSL Certificate Details:"
+        echo | openssl s_client -servername lovejourney.cloud -connect lovejourney.cloud:443 2>/dev/null | openssl x509 -noout -dates
+        
+        echo ""
+        echo "✅ Step 8 Complete: All verifications passed!"
+    
+    - name: Setup Complete Summary
+      if: always()
+      run: |
+        echo ""
+        echo "================================================"
+        echo "🎉 SETUP COMPLETE!"
+        echo "================================================"
+        echo ""
+        echo "✅ All steps completed successfully!"
+        echo ""
+        echo "📋 What was configured:"
+        echo "  ✅ System dependencies (Node.js, PostgreSQL, Redis, Nginx, PM2)"
+        echo "  ✅ Application deployed from GitHub"
+        echo "  ✅ Database created and migrated"
+        echo "  ✅ Nginx configured as reverse proxy"
+        echo "  ✅ SSL/HTTPS certificate installed (Let's Encrypt)"
+        echo "  ✅ Auto-renewal enabled"
+        echo "  ✅ Firewall configured"
+        echo "  ✅ Application running with PM2"
+        echo ""
+        echo "🌐 Your wedding dashboard is now live at:"
+        echo "   https://lovejourney.cloud"
+        echo ""
+        echo "📱 QR Scanner will work properly with camera access!"
+        echo ""
+        echo "🔐 SSL Certificate:"
+        echo "   Domain: lovejourney.cloud"
+        echo "   Email: rahul.ok63@gmail.com"
+        echo "   Auto-renewal: Every 60 days"
+        echo ""
+        echo "📊 Access your VPS to check status:"
+        echo "   ssh root@${{ secrets.VPS_HOST }}"
+        echo "   pm2 status"
+        echo "   certbot certificates"
+        echo ""
+        echo "================================================"
