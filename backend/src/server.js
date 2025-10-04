@@ -13,6 +13,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import guestRoutes from './routes/guests.js';
 import attendanceRoutes from './routes/attendance.js';
 import thankYouRoutes from './routes/thankYou.js';
+import invitationTemplateRoutes from './routes/invitationTemplate.js';
 import webhookRoutes from './routes/webhook.js';
 import whatsappRoutes from './routes/whatsapp.js';
 import qrRoutes from './routes/qr.js';
@@ -68,6 +69,7 @@ app.get('/health', (req, res) => {
 app.use('/api/guests', guestRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/thank-you', thankYouRoutes);
+app.use('/api/invitation-templates', invitationTemplateRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/qr', qrRoutes);
@@ -81,6 +83,7 @@ app.get('/api', (req, res) => {
       guests: '/api/guests',
       attendance: '/api/attendance',
       thankYou: '/api/thank-you',
+      invitationTemplates: '/api/invitation-templates',
       webhook: '/api/webhook'
     }
   });
