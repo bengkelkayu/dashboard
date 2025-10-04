@@ -15,17 +15,35 @@ Dengan HTTPS:
 - ✅ Data terenkripsi dan aman
 - ✅ User percaya dengan website Anda
 
+### 🎯 Dua Pilihan SSL:
+
+1. **Let's Encrypt dengan Domain** (Recommended untuk Production)
+   - ✅ Gratis dan trusted oleh semua browser
+   - ✅ Tidak ada security warning
+   - ✅ Professional dan ready untuk production
+   - ❌ Memerlukan domain name
+
+2. **Self-Signed dengan IP Address** (Untuk Testing/Development)
+   - ✅ Gratis dan mudah setup
+   - ✅ Tidak perlu domain
+   - ✅ Camera/QR Scanner tetap berfungsi
+   - ⚠️ Browser akan menampilkan security warning
+   - ❌ Tidak cocok untuk production
+
+**Panduan ini mencakup kedua pilihan!**
+
 ---
 
 ## 📋 Prerequisites
 
-Sebelum setup SSL, Anda perlu:
+### Untuk Let's Encrypt SSL (Recommended - Trusted Certificate):
 
 1. **Domain Name** - Anda harus punya domain (beli dari:)
    - Namecheap: https://www.namecheap.com
    - GoDaddy: https://www.godaddy.com
    - Cloudflare: https://www.cloudflare.com
-   - Atau provider lainnya
+   - Niagahoster: https://www.niagahoster.co.id (Indonesia)
+   - Rumahweb: https://www.rumahweb.com (Indonesia)
 
 2. **Domain sudah pointing ke VPS**
    ```
@@ -37,6 +55,14 @@ Sebelum setup SSL, Anda perlu:
    ```
 
 3. **VPS sudah terinstall aplikasi** (sudah deploy dengan workflow)
+
+### Untuk Self-Signed SSL (IP Address Only - Testing):
+
+1. **Hanya butuh VPS** - Tidak perlu domain
+2. **VPS sudah terinstall aplikasi**
+3. **Siap terima browser security warning**
+
+**Rekomendasi:** Gunakan Let's Encrypt dengan domain untuk production. Gunakan self-signed hanya untuk testing/development.
 
 ---
 
@@ -189,6 +215,221 @@ pm2 restart all
 
 ---
 
+## 🔐 SSL untuk IP Address (Self-Signed Certificate)
+
+**PENTING:** Jika Anda belum punya domain atau ingin menggunakan HTTPS dengan IP address saja (misal: https://43.134.97.90), Anda bisa menggunakan **self-signed certificate**.
+
+### ⚠️ Perbedaan Self-Signed vs Let's Encrypt
+
+| Aspek | Let's Encrypt (Domain) | Self-Signed (IP) |
+|-------|----------------------|------------------|
+| **Biaya** | Gratis ✅ | Gratis ✅ |
+| **Trusted Browser** | Ya ✅ (Tidak ada warning) | Tidak ❌ (Ada warning) |
+| **Domain Required** | Ya ✅ | Tidak ❌ |
+| **Setup Complexity** | Medium | Easy |
+| **Camera Access** | Works ✅ | Works ✅ (setelah accept warning) |
+| **Production Ready** | Ya ✅ | Tidak (hanya untuk testing) |
+
+### 📋 Kapan Menggunakan Self-Signed?
+
+✅ **Cocok untuk:**
+- Testing dan development
+- Internal application (tidak public)
+- Sementara sampai domain ready
+- Demo atau POC (Proof of Concept)
+- Mengaktifkan fitur camera/QR scanner untuk testing
+
+❌ **Tidak cocok untuk:**
+- Production website public
+- E-commerce atau payment
+- Website yang butuh user trust
+- Professional business application
+
+### 🚀 Cara Setup Self-Signed SSL untuk IP Address
+
+#### Pilihan 1: Via GitHub Actions (MUDAH) ⭐
+
+**Coming Soon** - Workflow untuk auto-setup self-signed certificate sedang dalam development.
+
+#### Pilihan 2: Manual Setup via SSH
+
+```bash
+# 1. Login ke VPS
+ssh root@43.134.97.90
+
+# 2. Buat direktori untuk SSL certificate
+mkdir -p /etc/nginx/ssl
+cd /etc/nginx/ssl
+
+# 3. Generate Self-Signed Certificate untuk IP Address
+# Certificate ini valid 365 hari (1 tahun)
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout /etc/nginx/ssl/selfsigned.key \
+  -out /etc/nginx/ssl/selfsigned.crt \
+  -subj "/C=ID/ST=Jakarta/L=Jakarta/O=Wedding Dashboard/OU=IT/CN=43.134.97.90" \
+  -addext "subjectAltName=IP:43.134.97.90"
+
+# 4. Set proper permissions
+chmod 600 /etc/nginx/ssl/selfsigned.key
+chmod 644 /etc/nginx/ssl/selfsigned.crt
+
+echo "✅ Self-signed certificate created!"
+
+# 5. Update Nginx Configuration
+cat > /etc/nginx/sites-available/wedding-dashboard << 'EOF'
+# HTTP - Redirect to HTTPS
+server {
+    listen 80;
+    server_name _;
+    
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# HTTPS - Main application with self-signed certificate
+server {
+    listen 443 ssl http2;
+    server_name _;
+
+    # SSL Configuration - Self-Signed Certificate
+    ssl_certificate /etc/nginx/ssl/selfsigned.crt;
+    ssl_certificate_key /etc/nginx/ssl/selfsigned.key;
+    
+    # SSL Security Settings
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    
+    # Security Headers
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+
+    client_max_body_size 10M;
+
+    # Proxy to Node.js application
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+EOF
+
+# 6. Enable the site
+ln -sf /etc/nginx/sites-available/wedding-dashboard /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/default
+
+# 7. Test nginx configuration
+nginx -t
+
+# 8. Restart Nginx
+systemctl restart nginx
+
+echo "✅ Nginx configured with self-signed SSL!"
+echo ""
+echo "================================================"
+echo "🌐 Your site is now accessible at:"
+echo "   https://43.134.97.90"
+echo ""
+echo "⚠️  Browser will show security warning"
+echo "    Click 'Advanced' > 'Proceed to site'"
+echo "================================================"
+
+# 9. Update .env (optional)
+cd /root/dashboard
+if [ -f .env ]; then
+  if grep -q "^CORS_ORIGIN=" .env; then
+    sed -i "s|^CORS_ORIGIN=.*|CORS_ORIGIN=https://43.134.97.90|" .env
+  else
+    echo "CORS_ORIGIN=https://43.134.97.90" >> .env
+  fi
+  pm2 restart all
+  echo "✅ Application restarted with HTTPS configuration"
+fi
+```
+
+### 🌐 Cara Mengakses Site dengan Self-Signed Certificate
+
+Setelah setup, akses: **https://43.134.97.90**
+
+Browser akan menampilkan **security warning** karena certificate tidak di-trust oleh Certificate Authority.
+
+#### Chrome / Edge:
+1. Klik **"Advanced"** atau **"Details"**
+2. Klik **"Proceed to 43.134.97.90 (unsafe)"** atau **"Continue to site"**
+3. ✅ Site akan terbuka dengan HTTPS
+
+#### Firefox:
+1. Klik **"Advanced"**
+2. Klik **"Accept the Risk and Continue"**
+3. ✅ Site akan terbuka dengan HTTPS
+
+#### Safari (iOS/macOS):
+1. Klik **"Show Details"**
+2. Klik **"visit this website"**
+3. Confirm dengan password/Touch ID
+4. ✅ Site akan terbuka dengan HTTPS
+
+### 📱 QR Scanner / Camera dengan Self-Signed SSL
+
+Setelah accept security warning:
+- ✅ Kamera akan bisa diakses
+- ✅ QR Scanner akan berfungsi normal
+- ✅ Semua fitur HTTPS-only akan aktif
+
+**Note:** Anda hanya perlu accept warning **sekali per browser**. Setelah itu, browser akan remember exception.
+
+### 🔄 Renew Self-Signed Certificate
+
+Certificate self-signed perlu di-renew manual sebelum expire (365 hari):
+
+```bash
+ssh root@43.134.97.90
+
+# Generate certificate baru (sama seperti step 3 di atas)
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout /etc/nginx/ssl/selfsigned.key \
+  -out /etc/nginx/ssl/selfsigned.crt \
+  -subj "/C=ID/ST=Jakarta/L=Jakarta/O=Wedding Dashboard/OU=IT/CN=43.134.97.90" \
+  -addext "subjectAltName=IP:43.134.97.90"
+
+# Restart Nginx
+systemctl restart nginx
+
+echo "✅ Certificate renewed for another 365 days"
+```
+
+### 🎯 Migration ke Domain + Let's Encrypt (Recommended)
+
+Ketika Anda sudah siap dengan domain, Anda bisa migrate dari self-signed ke Let's Encrypt:
+
+```bash
+# 1. Setup domain DNS (A record ke IP VPS)
+# 2. Tunggu DNS propagation (5-10 menit)
+# 3. Jalankan GitHub Actions: "Setup SSL/HTTPS Certificate"
+# 4. Done! Certificate akan otomatis trusted tanpa warning
+```
+
+### ⚠️ Important Notes
+
+1. **Browser Warning Normal**: Self-signed certificate akan selalu ada warning - ini expected behavior
+2. **Not for Production**: Jangan gunakan self-signed untuk production public website
+3. **Camera Still Works**: Meskipun ada warning, camera/QR scanner tetap berfungsi setelah accept warning
+4. **One-time Accept**: Setelah accept warning, browser akan remember untuk session selanjutnya
+5. **Different per Device**: Setiap device/browser perlu accept warning masing-masing
+
+---
+
 ## ✅ Verifikasi SSL Berhasil
 
 ### Test 1: Akses via Browser
@@ -305,6 +546,49 @@ systemctl reload nginx
 
 ---
 
+### Error: "Browser tidak accept self-signed certificate"
+
+Jika browser menolak self-signed certificate:
+
+**Chrome/Edge:**
+1. Di halaman warning, ketik: `thisisunsafe` (tanpa spasi, langsung ketik)
+2. Browser akan bypass warning
+3. Atau klik Advanced > Proceed
+
+**Firefox:**
+1. Settings > Privacy & Security
+2. Scroll ke Certificates
+3. View Certificates > Servers > Add Exception
+4. Masukkan: `https://43.134.97.90`
+5. Confirm Security Exception
+
+**iOS Safari:**
+1. Settings > General > About > Certificate Trust Settings
+2. Enable certificate untuk IP address
+
+---
+
+### Error: "Mixed Content" setelah SSL setup
+
+Jika ada error mixed content (HTTP di dalam HTTPS):
+
+```bash
+ssh root@43.134.97.90
+cd /root/dashboard
+
+# Check .env
+grep -E "^(CORS_ORIGIN|BASE_URL|API_URL)" .env
+
+# Pastikan semua URL menggunakan https://
+# Update jika masih http://
+nano .env
+
+# Restart
+pm2 restart all
+```
+
+---
+
 ## 📊 SSL Security Best Practices
 
 ### 1. Force HTTPS
@@ -358,7 +642,7 @@ A: Ya! Let's Encrypt 100% gratis, selamanya.
 A: 90 hari, tapi auto-renew 30 hari sebelum expire.
 
 ### Q: Apakah harus punya domain?
-A: Ya, SSL certificate butuh domain. Tidak bisa pakai IP address saja.
+A: Untuk SSL certificate dari Let's Encrypt (gratis dan trusted), ya harus punya domain. Tapi ada alternatif untuk IP address - lihat bagian "SSL untuk IP Address" di bawah.
 
 ### Q: Bisa pakai subdomain?
 A: Ya! Misal: wedding.example.com
@@ -369,8 +653,8 @@ A: Ya, tapi butuh DNS validation. Gunakan:
 certbot certonly --manual --preferred-challenges dns -d "*.example.com"
 ```
 
-### Q: Bisakah tanpa domain?
-A: Tidak untuk production. Browser butuh domain untuk SSL. Tapi untuk development di localhost tidak perlu SSL.
+### Q: Bisakah tanpa domain / hanya dengan IP?
+A: Ya, bisa dengan self-signed certificate! Lihat panduan lengkap di bagian "SSL untuk IP Address (Self-Signed Certificate)" di bawah. Cocok untuk testing atau saat belum punya domain.
 
 ---
 
@@ -401,11 +685,37 @@ Pastikan kamera tidak digunakan aplikasi lain
 
 Setup SSL/HTTPS adalah **WAJIB** untuk QR Scanner!
 
+### Pilihan 1: Let's Encrypt dengan Domain (Recommended)
 **Cara tercepat:**
 1. Beli domain (Rp 100.000/tahun)
 2. Pointing ke VPS (A record ke 43.134.97.90)
 3. Run GitHub Actions: "Setup SSL/HTTPS Certificate"
 4. Done! QR Scanner siap digunakan ✅
+
+**Keuntungan:**
+- ✅ Trusted certificate (no warning)
+- ✅ Professional untuk production
+- ✅ Auto-renewal setiap 60 hari
+
+### Pilihan 2: Self-Signed dengan IP Address (Testing)
+**Cara tercepat:**
+1. SSH ke VPS
+2. Generate self-signed certificate (5 menit)
+3. Update Nginx config
+4. Done! QR Scanner siap digunakan ✅
+
+**Keuntungan:**
+- ✅ Tidak perlu domain
+- ✅ Gratis dan cepat setup
+- ✅ Perfect untuk testing
+
+**Kekurangan:**
+- ⚠️ Browser security warning (harus di-accept manual)
+- ❌ Tidak cocok untuk production
+
+### 🎯 Rekomendasi:
+- **Testing/Development**: Gunakan self-signed SSL
+- **Production/Public**: Gunakan Let's Encrypt dengan domain
 
 **Pertanyaan?** Buka issue di GitHub atau contact support.
 

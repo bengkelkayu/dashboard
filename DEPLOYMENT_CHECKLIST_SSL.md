@@ -3,8 +3,8 @@
 ## Prerequisites
 - [ ] VPS ready and accessible
 - [ ] GitHub Secrets configured (`VPS_HOST`, `VPS_PASSWORD`)
-- [ ] Domain purchased (untuk SSL)
-- [ ] DNS A record pointing to VPS
+- [ ] **Domain purchased (untuk SSL dengan Let's Encrypt)** - ATAU bisa skip jika menggunakan self-signed SSL
+- [ ] DNS A record pointing to VPS (jika menggunakan domain)
 
 ## Step 1: Initial Deployment (5-10 minutes)
 
@@ -41,7 +41,15 @@ curl http://YOUR_VPS_IP
 
 ## Step 2: SSL/HTTPS Setup (3-5 minutes) - REQUIRED FOR CAMERA!
 
-### 2.1 Prepare Domain
+**Pilih salah satu:**
+- **Option A**: Let's Encrypt dengan Domain (Recommended untuk Production)
+- **Option B**: Self-Signed dengan IP Address (Untuk Testing)
+
+---
+
+### Option A: Let's Encrypt SSL (dengan Domain)
+
+#### 2.1 Prepare Domain
 ```
 1. Login to your domain registrar
 2. Add A record:
@@ -52,7 +60,7 @@ curl http://YOUR_VPS_IP
 3. Wait 5-10 minutes for DNS propagation
 ```
 
-### 2.2 Verify DNS
+#### 2.2 Verify DNS
 ```bash
 # Check if domain points to VPS
 dig yourdomain.com
@@ -61,7 +69,7 @@ nslookup yourdomain.com
 # Should return YOUR_VPS_IP
 ```
 
-### 2.3 Run SSL Setup Workflow
+#### 2.3 Run SSL Setup Workflow
 ```
 1. Go to: GitHub → Actions
 2. Select: "Setup SSL/HTTPS Certificate"
@@ -73,7 +81,7 @@ nslookup yourdomain.com
 6. Wait: 3-5 minutes
 ```
 
-### 2.4 Verify SSL
+#### 2.4 Verify SSL
 ```bash
 # Test HTTPS access
 curl https://yourdomain.com
@@ -88,11 +96,104 @@ echo | openssl s_client -servername yourdomain.com -connect yourdomain.com:443 2
 - [ ] Gembok 🔒 icon in browser
 - [ ] No SSL warnings
 
+---
+
+### Option B: Self-Signed SSL (dengan IP Address)
+
+**Untuk testing atau jika belum punya domain**
+
+#### 2.1 SSH ke VPS dan Generate Certificate
+```bash
+ssh root@YOUR_VPS_IP
+
+# Create SSL directory
+mkdir -p /etc/nginx/ssl
+cd /etc/nginx/ssl
+
+# Generate self-signed certificate
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout /etc/nginx/ssl/selfsigned.key \
+  -out /etc/nginx/ssl/selfsigned.crt \
+  -subj "/C=ID/ST=Jakarta/L=Jakarta/O=Wedding Dashboard/OU=IT/CN=YOUR_VPS_IP" \
+  -addext "subjectAltName=IP:YOUR_VPS_IP"
+
+# Set permissions
+chmod 600 /etc/nginx/ssl/selfsigned.key
+chmod 644 /etc/nginx/ssl/selfsigned.crt
+```
+
+#### 2.2 Update Nginx Configuration
+```bash
+# Update Nginx config for self-signed SSL
+cat > /etc/nginx/sites-available/wedding-dashboard << 'EOF'
+server {
+    listen 80;
+    server_name _;
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name _;
+
+    ssl_certificate /etc/nginx/ssl/selfsigned.crt;
+    ssl_certificate_key /etc/nginx/ssl/selfsigned.key;
+    
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    client_max_body_size 10M;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+EOF
+
+# Test and restart Nginx
+nginx -t
+systemctl restart nginx
+
+echo "✅ Self-signed SSL configured!"
+```
+
+#### 2.3 Verify Self-Signed SSL
+```bash
+# Test HTTPS access (will show certificate error - expected)
+curl -k https://YOUR_VPS_IP
+
+# Check if serving HTTPS
+netstat -tlnp | grep :443
+```
+
+- [ ] HTTPS accessible at https://YOUR_VPS_IP
+- [ ] Browser shows security warning (expected for self-signed)
+- [ ] Can proceed past warning
+- [ ] Application loads correctly
+
+---
+
 ## Step 3: Test QR Scanner Camera (Instant)
 
 ### 3.1 Access Scanner
 ```
+# For Let's Encrypt (Domain):
 URL: https://yourdomain.com/scanner.html
+
+# For Self-Signed (IP):
+URL: https://YOUR_VPS_IP/scanner.html
+(Accept security warning first)
 ```
 
 ### 3.2 Test Camera Access
