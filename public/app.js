@@ -346,6 +346,7 @@ async function openGuestDrawer(id) {
         const response = await guestAPI.getById(id);
         const guest = response.data;
         currentDrawerGuest = guest;
+        window.currentDrawerGuest = guest;
         
         // Populate drawer
         document.getElementById('drawerGuestName').textContent = guest.name;
@@ -408,6 +409,7 @@ function closeGuestDrawer() {
     document.getElementById('guestDrawer').classList.remove('open');
     document.body.style.overflow = '';
     currentDrawerGuest = null;
+    window.currentDrawerGuest = null;
     cancelCategoryEdit();
 }
 
@@ -460,6 +462,7 @@ window.openGuestDrawer = openGuestDrawer;
 window.editCategory = editCategory;
 window.cancelCategoryEdit = cancelCategoryEdit;
 window.saveCategoryEdit = saveCategoryEdit;
+window.currentDrawerGuest = null;
 
 // ==================== WhatsApp Functions ====================
 
