@@ -8,7 +8,7 @@ Full-stack monolithic dashboard untuk mengelola daftar tamu undangan pernikahan 
 
 #### Option 1: GitHub Actions (RECOMMENDED ⚡)
 
-Deploy otomatis dengan 1 klik via GitHub Actions:
+Deploy otomatis dengan 1 klik via GitHub Actions dengan **schema verification** otomatis:
 
 1. Setup GitHub Secrets (sekali saja):
    - `VPS_HOST`: IP server VPS Anda
@@ -19,7 +19,16 @@ Deploy otomatis dengan 1 klik via GitHub Actions:
 4. Klik **Run workflow** > pilih **full** > klik **Run workflow**
 5. Tunggu 5-10 menit, aplikasi langsung live! 🎉
 
-**📖 Panduan lengkap:** [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md)
+**✨ NEW: Workflow Enhancement v2.0**
+- ✅ Automatic database schema verification
+- ✅ QR code functionality testing
+- ✅ Migration error detection
+- ✅ Detailed deployment status
+
+**📖 Panduan lengkap:** 
+- [WORKFLOW_QUICK_START.md](WORKFLOW_QUICK_START.md) - **Quick start guide** ⚡
+- [WORKFLOW_ENHANCEMENTS.md](WORKFLOW_ENHANCEMENTS.md) - Technical details
+- [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md) - Initial setup
 
 #### Option 2: Manual SSH Deployment
 
