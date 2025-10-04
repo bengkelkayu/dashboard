@@ -157,48 +157,18 @@ jobs:
             echo "Creating new database..."
             DB_PASSWORD=$(openssl rand -base64 32)
             
-            sudo -u postgres psql <<DBEOF
--- Create user if not exists
-DO \$\$
-BEGIN
-    IF NOT EXISTS (SELECT FROM pg_user WHERE usename = '${DB_USER}') THEN
-        CREATE USER ${DB_USER} WITH PASSWORD '${DB_PASSWORD}';
-    END IF;
-END
-\$\$;
-
--- Create database
-CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};
-GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};
-DBEOF
+            # Create user if not exists
+            USER_EXISTS=$(sudo -u postgres psql -tAc "SELECT 1 FROM pg_user WHERE usename = '${DB_USER}'")
+            if [ -z "$USER_EXISTS" ]; then
+              echo "CREATE USER ${DB_USER} WITH PASSWORD '${DB_PASSWORD}';" | sudo -u postgres psql
+            fi
+            
+            # Create database
+            echo "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};" | sudo -u postgres psql
+            echo "GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};" | sudo -u postgres psql
             
             # Create .env file
-            cat > .env <<ENVEOF
-# Server Configuration
-PORT=3000
-NODE_ENV=production
-
-# Database Configuration
-DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=${DB_NAME}
-DB_USER=${DB_USER}
-DB_PASSWORD=${DB_PASSWORD}
-
-# Redis Configuration
-REDIS_URL=redis://localhost:6379
-
-# WhatsApp API Configuration
-WHATSAPP_API_URL=https://api.whatsapp.com/send
-WHATSAPP_API_KEY=your_api_key_here
-
-# Webhook Secret
-WEBHOOK_SECRET=$(openssl rand -hex 32)
-
-# Application Configuration
-CORS_ORIGIN=*
-ENVEOF
+            printf "# Server Configuration\nPORT=3000\nNODE_ENV=production\n\n# Database Configuration\nDATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}\nDB_HOST=localhost\nDB_PORT=5432\nDB_NAME=${DB_NAME}\nDB_USER=${DB_USER}\nDB_PASSWORD=${DB_PASSWORD}\n\n# Redis Configuration\nREDIS_URL=redis://localhost:6379\n\n# WhatsApp API Configuration\nWHATSAPP_API_URL=https://api.whatsapp.com/send\nWHATSAPP_API_KEY=your_api_key_here\n\n# Webhook Secret\nWEBHOOK_SECRET=$(openssl rand -hex 32)\n\n# Application Configuration\nCORS_ORIGIN=*\n" > .env
             
             echo "✓ Database and .env created"
             echo "📝 Database Password: ${DB_PASSWORD}"
