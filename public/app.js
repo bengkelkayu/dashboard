@@ -244,7 +244,7 @@ function renderGuestTable(filteredGuests = null) {
                 <td onclick="event.stopPropagation();">
                     <button class="btn btn-qr btn-sm" onclick="viewQRCode(${guest.id})" title="Lihat QR Code">📱 QR</button>
                     <button class="btn btn-edit" onclick="openEditModal(${guest.id})">Edit</button>
-                    <button class="btn btn-success btn-sm" onclick="sendWhatsAppToGuest(${guest.id})">📤 WA</button>
+                    <button class="btn btn-success btn-sm" onclick="sendWhatsAppToGuest(${guest.id})" title="Kirim undangan pernikahan dengan QR Code">📤 Undangan</button>
                     <button class="btn btn-delete" onclick="deleteGuest(${guest.id})">Hapus</button>
                 </td>
             </tr>
@@ -538,16 +538,20 @@ function closeWAQRModal() {
 
 // Send WhatsApp to single guest
 async function sendWhatsAppToGuest(guestId) {
-    if (!confirm('Kirim pesan WhatsApp ke tamu ini?')) {
+    const guest = guests.find(g => g.id === guestId);
+    const guestName = guest ? guest.name : 'tamu ini';
+    
+    if (!confirm(`Kirim undangan pernikahan dengan QR Code ke ${guestName}?`)) {
         return;
     }
     
     try {
         const response = await whatsappAPI.sendToGuest(guestId, {});
-        alert(`✓ Pesan berhasil dikirim ke ${response.data.guest}`);
+        alert(`✓ Undangan pernikahan dan QR Code berhasil dikirim ke ${response.data.guest}!`);
+        await loadGuests(); // Refresh guest list
     } catch (error) {
-        console.error('Error sending WhatsApp:', error);
-        alert(`✗ Gagal mengirim pesan: ${error.message}`);
+        console.error('Error sending wedding invitation:', error);
+        alert(`✗ Gagal mengirim undangan: ${error.message}`);
     }
 }
 

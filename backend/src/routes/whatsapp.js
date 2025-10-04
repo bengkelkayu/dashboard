@@ -22,11 +22,10 @@ router.get('/qr', getQRCode);
 // Initialize WhatsApp connection
 router.post('/initialize', initialize);
 
-// Send message to a single guest
+// Send wedding invitation with QR code to a single guest
 router.post('/send/:guestId',
   [
     param('guestId').isInt().withMessage('Guest ID must be a valid integer'),
-    body('templateId').optional().isInt().withMessage('Template ID must be an integer'),
     body('customMessage').optional().isString().withMessage('Custom message must be a string')
   ],
   validate,
