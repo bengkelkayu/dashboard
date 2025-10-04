@@ -31,6 +31,36 @@
             font-size: 14px;
         }
         
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
         #reader {
             border: 2px solid #e0e0e0;
             border-radius: 8px;
@@ -142,7 +172,16 @@
         
         <div id="scanResult" class="scan-result"></div>
         
-        <div id="reader"></div>
+        <div id="scannerControls" style="text-align: center; margin-bottom: 20px;">
+            <button id="startScanBtn" class="btn btn-primary" style="padding: 15px 30px; font-size: 16px;">
+                📷 Mulai Scan
+            </button>
+            <button id="stopScanBtn" class="btn btn-secondary" style="padding: 15px 30px; font-size: 16px; display: none;">
+                ⏹️ Stop Scan
+            </button>
+        </div>
+        
+        <div id="reader" style="display: none;"></div>
         
         <div class="scanner-stats">
             <div class="stat-box">
@@ -318,8 +357,32 @@
                 .replace(/'/g, "&#039;");
         }
         
-        // Start scanner on page load
-        window.addEventListener('DOMContentLoaded', initScanner);
+        // Stop scanner
+        async function stopScanner() {
+            if (html5QrCode) {
+                try {
+                    await html5QrCode.stop();
+                    console.log("Scanner stopped successfully");
+                    document.getElementById('reader').style.display = 'none';
+                    document.getElementById('startScanBtn').style.display = 'inline-block';
+                    document.getElementById('stopScanBtn').style.display = 'none';
+                } catch (err) {
+                    console.error("Failed to stop scanner:", err);
+                }
+            }
+        }
+        
+        // Set up button event listeners
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('startScanBtn').addEventListener('click', async () => {
+                document.getElementById('reader').style.display = 'block';
+                document.getElementById('startScanBtn').style.display = 'none';
+                document.getElementById('stopScanBtn').style.display = 'inline-block';
+                await initScanner();
+            });
+            
+            document.getElementById('stopScanBtn').addEventListener('click', stopScanner);
+        });
         
         // Cleanup on page unload
         window.addEventListener('beforeunload', () => {

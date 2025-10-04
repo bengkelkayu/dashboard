@@ -239,6 +239,9 @@ tbody tr:hover {
     border-radius: 12px;
     width: 90%;
     max-width: 500px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
     animation: slideDown 0.3s ease;
 }
 
@@ -259,6 +262,7 @@ tbody tr:hover {
     align-items: center;
     padding: 20px 30px;
     border-bottom: 2px solid #f0f0f0;
+    flex-shrink: 0;
 }
 
 .modal-header h2 {
@@ -280,6 +284,14 @@ tbody tr:hover {
 
 #guestForm {
     padding: 30px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+#templateForm {
+    padding: 30px;
+    overflow-y: auto;
+    flex: 1;
 }
 
 .form-group {
@@ -364,7 +376,8 @@ tbody tr:hover {
 
     .modal-content {
         width: 95%;
-        margin: 10% auto;
+        margin: 5% auto;
+        max-height: 90vh;
     }
 }
 
