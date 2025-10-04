@@ -68,11 +68,11 @@ export async function initialize(req, res) {
   }
 }
 
-// Send WhatsApp message to a single guest
+// Send WhatsApp message to a single guest (Wedding Invitation with QR Code)
 export async function sendToGuest(req, res) {
   try {
     const { guestId } = req.params;
-    const { templateId, customMessage } = req.body;
+    const { customMessage } = req.body;
 
     // Get guest
     const guest = await Guest.findById(guestId);
@@ -83,64 +83,62 @@ export async function sendToGuest(req, res) {
       });
     }
 
-    let message;
-    let template = null;
-
-    if (customMessage) {
-      // Use custom message
-      message = customMessage;
-    } else if (templateId) {
-      // Use template
-      template = await ThankYouTemplate.findById(templateId);
-      if (!template) {
-        return res.status(404).json({
-          success: false,
-          error: 'Template not found'
-        });
-      }
-
-      // Render message with guest data
-      message = ThankYouTemplate.renderMessage(template.message_template, {
-        nama: guest.name,
-        waktu_checkin: new Date().toLocaleString('id-ID', {
-          timeZone: 'Asia/Jakarta',
-          dateStyle: 'full',
-          timeStyle: 'short'
-        })
-      });
+    // Generate or get QR code
+    const { generateQRCodeForGuest } = await import('./qrController.js');
+    let qrData;
+    
+    if (guest.qr_code_url && guest.qr_code_token) {
+      console.log(`Using existing QR code for guest ${guest.name} (${guestId})`);
+      qrData = {
+        qrCode: guest.qr_code_url,
+        token: guest.qr_code_token
+      };
     } else {
-      // Use first enabled template
-      const templates = await ThankYouTemplate.findEnabled();
-      if (templates.length === 0) {
-        return res.status(400).json({
-          success: false,
-          error: 'No enabled templates found. Please provide a custom message or enable a template.'
-        });
+      console.log(`Generating new QR code for guest ${guest.name} (${guestId})`);
+      try {
+        qrData = await generateQRCodeForGuest(guestId, guest);
+        console.log(`✓ QR code generated successfully for guest ${guest.name}`);
+      } catch (qrError) {
+        console.error(`✗ Failed to generate QR code for guest ${guest.name}:`, qrError);
+        throw new Error(`Failed to generate QR code: ${qrError.message}`);
       }
-
-      template = templates[0];
-      message = ThankYouTemplate.renderMessage(template.message_template, {
-        nama: guest.name,
-        waktu_checkin: new Date().toLocaleString('id-ID', {
-          timeZone: 'Asia/Jakarta',
-          dateStyle: 'full',
-          timeStyle: 'short'
-        })
-      });
     }
 
-    // Send message
-    await whatsappService.sendMessage(guest.phone, message);
+    // Prepare invitation message with QR code
+    let message;
+    
+    if (customMessage) {
+      message = customMessage;
+    } else {
+      // Build wedding invitation message
+      message = `Halo ${guest.name}! 🎉\n\nKami mengundang Anda untuk hadir di acara pernikahan kami.`;
+      
+      if (guest.invitation_link) {
+        message += `\n\nUndangan digital: ${guest.invitation_link}`;
+      }
+      
+      message += `\n\nTerlampir QR Code untuk absensi. Silakan tunjukkan QR Code ini saat check-in di acara.\n\nDitunggu kehadirannya! 🙏`;
+    }
+
+    // Send message with QR code image
+    console.log(`Sending wedding invitation with QR code to ${guest.name} (${guest.phone})`);
+    try {
+      await whatsappService.sendMessageWithImage(guest.phone, message, qrData.qrCode);
+      console.log(`✓ Wedding invitation with QR code sent successfully to ${guest.name}`);
+    } catch (sendError) {
+      console.error(`✗ Failed to send WhatsApp message to ${guest.name}:`, sendError);
+      throw new Error(`Failed to send WhatsApp message: ${sendError.message}`);
+    }
 
     // Log to outbox
     await ThankYouOutbox.create({
       guest_id: guestId,
-      template_id: template?.id || null,
-      message,
+      template_id: null,
+      message: message + '\n[QR Code sent]',
       phone: guest.phone
     });
 
-    // Mark as sent immediately since Baileys sends synchronously
+    // Mark as sent immediately
     const outbox = await ThankYouOutbox.findAll({ guest_id: guestId, status: 'pending' });
     if (outbox.length > 0) {
       await ThankYouOutbox.markAsSent(outbox[outbox.length - 1].id);
@@ -148,17 +146,24 @@ export async function sendToGuest(req, res) {
 
     res.json({
       success: true,
-      message: `Message sent to ${guest.name}`,
+      message: `Wedding invitation and QR Code sent to ${guest.name}`,
       data: {
         guest: guest.name,
-        phone: guest.phone
+        phone: guest.phone,
+        hasInvitationLink: !!guest.invitation_link,
+        hasQRCode: true
       }
     });
   } catch (error) {
-    console.error('Error sending message to guest:', error);
+    console.error('Error sending wedding invitation with QR code:', error);
+    console.error('Error details:', {
+      guestId: req.params.guestId,
+      errorMessage: error.message,
+      errorStack: error.stack
+    });
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message || 'Failed to send wedding invitation with QR code'
     });
   }
 }

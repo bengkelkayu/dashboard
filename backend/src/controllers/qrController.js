@@ -70,8 +70,21 @@ export async function generateQRCodeForGuest(guestId, guestData) {
       guestId,
       guestName: guestData?.name,
       errorMessage: error.message,
-      errorStack: error.stack
+      errorStack: error.stack,
+      errorCode: error.code
     });
+    
+    // Provide helpful error message for common database issues
+    if (error.code === '42703') {
+      const detailedError = new Error('Database column "qr_code_token" or "qr_code_url" does not exist. Please run database migrations: npm run migrate');
+      detailedError.code = error.code;
+      throw detailedError;
+    } else if (error.code === '42P01') {
+      const detailedError = new Error('Database table "guests" does not exist. Please run database migrations: npm run migrate');
+      detailedError.code = error.code;
+      throw detailedError;
+    }
+    
     throw error;
   }
 }
@@ -113,12 +126,22 @@ export async function getGuestQRCode(req, res) {
     console.error('Error details:', {
       guestId: req.params.id,
       errorMessage: error.message,
-      errorStack: error.stack
+      errorStack: error.stack,
+      errorCode: error.code
     });
+    
+    // Provide more specific error message for database issues
+    let errorDetails = error.message;
+    if (error.code === '42703') {
+      errorDetails = 'Database column missing. Please run migrations: npm run migrate';
+    } else if (error.code === '42P01') {
+      errorDetails = 'Database table missing. Please run migrations: npm run migrate';
+    }
+    
     res.status(500).json({ 
       success: false, 
       error: 'Failed to get QR code',
-      details: error.message 
+      details: errorDetails
     });
   }
 }
