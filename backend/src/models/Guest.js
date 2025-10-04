@@ -67,6 +67,19 @@ class Guest {
     `);
     return result.rows[0];
   }
+
+  static async updateQRCode(id, token, qrCodeUrl) {
+    const result = await query(
+      'UPDATE guests SET qr_code_token = $1, qr_code_url = $2, qr_code_generated_at = CURRENT_TIMESTAMP WHERE id = $3 RETURNING *',
+      [token, qrCodeUrl, id]
+    );
+    return result.rows[0];
+  }
+
+  static async findByQRToken(token) {
+    const result = await query('SELECT * FROM guests WHERE qr_code_token = $1', [token]);
+    return result.rows[0];
+  }
 }
 
 export default Guest;

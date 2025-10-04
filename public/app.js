@@ -1,5 +1,5 @@
 // Import API client
-import { guestAPI, attendanceAPI, whatsappAPI, thankYouAPI } from './api-client.js';
+import { guestAPI, attendanceAPI, whatsappAPI, thankYouAPI, qrAPI } from './api-client.js';
 
 // Guest data storage
 let guests = [];
@@ -219,7 +219,7 @@ function renderGuestTable(filteredGuests = null) {
     if (guestsToRender.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6">
+                <td colspan="7">
                     <div class="empty-state">
                         <div class="empty-state-icon">👥</div>
                         <div class="empty-state-text">Belum ada data tamu. Klik "Tambah Tamu" untuk menambahkan.</div>
@@ -240,6 +240,7 @@ function renderGuestTable(filteredGuests = null) {
                 <td>${getCategoryBadge(guest.category)}</td>
                 <td>${attendanceBadge}</td>
                 <td onclick="event.stopPropagation();">
+                    <button class="btn btn-qr btn-sm" onclick="viewQRCode(${guest.id})" title="Lihat QR Code">📱 QR</button>
                     <button class="btn btn-edit" onclick="openEditModal(${guest.id})">Edit</button>
                     <button class="btn btn-success btn-sm" onclick="sendWhatsAppToGuest(${guest.id})">📤 WA</button>
                     <button class="btn btn-delete" onclick="deleteGuest(${guest.id})">Hapus</button>
@@ -620,3 +621,63 @@ async function handleBulkWASend(e) {
 window.closeWAQRModal = closeWAQRModal;
 window.closeBulkWAModal = closeBulkWAModal;
 window.sendWhatsAppToGuest = sendWhatsAppToGuest;
+
+// ==================== QR Code Functions ====================
+
+// View QR code for a guest
+async function viewQRCode(guestId) {
+    const modal = document.getElementById('qrModal');
+    const container = document.getElementById('qrCodeImage');
+    const guestInfo = document.getElementById('qrGuestInfo');
+    
+    modal.style.display = 'block';
+    container.innerHTML = '<div class="loading">Memuat QR Code...</div>';
+    guestInfo.textContent = 'Loading...';
+    
+    try {
+        const response = await qrAPI.getGuestQRCode(guestId);
+        const guest = guests.find(g => g.id === guestId);
+        
+        container.innerHTML = `<img src="${response.data.qrCode}" alt="QR Code" style="max-width: 100%; height: auto;">`;
+        guestInfo.innerHTML = `
+            <strong>${escapeHtml(guest.name)}</strong><br>
+            <small>${getCategoryBadge(guest.category)}</small>
+        `;
+        
+        // Store QR data for download
+        window.currentQRData = {
+            qrCode: response.data.qrCode,
+            guestName: guest.name
+        };
+    } catch (error) {
+        console.error('Error getting QR code:', error);
+        container.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+        guestInfo.textContent = '';
+    }
+}
+
+// Download QR code
+function downloadQRCode() {
+    if (!window.currentQRData) {
+        alert('No QR code to download');
+        return;
+    }
+    
+    const link = document.createElement('a');
+    link.href = window.currentQRData.qrCode;
+    link.download = `QR-${window.currentQRData.guestName.replace(/\s+/g, '-')}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Close QR modal
+function closeQRModal() {
+    document.getElementById('qrModal').style.display = 'none';
+    window.currentQRData = null;
+}
+
+// Make QR functions globally accessible
+window.viewQRCode = viewQRCode;
+window.downloadQRCode = downloadQRCode;
+window.closeQRModal = closeQRModal;

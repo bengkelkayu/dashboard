@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Scanner - Wedding Guest</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        .scanner-container {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .scanner-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .scanner-header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .scanner-header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        #reader {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .scan-result {
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .scan-result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            display: block;
+        }
+        
+        .scan-result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            display: block;
+        }
+        
+        .scan-result h3 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+        }
+        
+        .scan-result p {
+            margin: 5px 0;
+        }
+        
+        .scan-result .guest-details {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .scanner-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-box {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-box .number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 5px;
+        }
+        
+        .stat-box .label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #4CAF50;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="scanner-container">
+        <a href="/" class="back-link">← Kembali ke Dashboard</a>
+        
+        <div class="scanner-header">
+            <h1>🎉 QR Code Scanner</h1>
+            <p>Scan QR code tamu untuk check-in otomatis</p>
+        </div>
+        
+        <div id="scanResult" class="scan-result"></div>
+        
+        <div id="reader"></div>
+        
+        <div class="scanner-stats">
+            <div class="stat-box">
+                <div class="number" id="successCount">0</div>
+                <div class="label">Berhasil Scan</div>
+            </div>
+            <div class="stat-box">
+                <div class="number" id="errorCount">0</div>
+                <div class="label">Error</div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { qrAPI } from './api-client.js';
+        
+        let html5QrCode;
+        let isProcessing = false;
+        let successCount = 0;
+        let errorCount = 0;
+        
+        // Initialize scanner
+        async function initScanner() {
+            html5QrCode = new Html5Qrcode("reader");
+            
+            try {
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    {
+                        fps: 10,
+                        qrbox: { width: 250, height: 250 }
+                    },
+                    onScanSuccess,
+                    onScanError
+                );
+                console.log("Scanner started successfully");
+            } catch (err) {
+                console.error("Failed to start scanner:", err);
+                showResult('error', 'Gagal memulai scanner', 
+                    'Pastikan Anda telah memberikan izin akses kamera. Error: ' + err);
+            }
+        }
+        
+        // Handle successful scan
+        async function onScanSuccess(decodedText, decodedResult) {
+            if (isProcessing) return;
+            
+            isProcessing = true;
+            console.log("QR Code scanned:", decodedText);
+            
+            try {
+                const response = await qrAPI.scanQR(decodedText);
+                
+                if (response.success) {
+                    successCount++;
+                    document.getElementById('successCount').textContent = successCount;
+                    
+                    // Play success sound (optional)
+                    playSuccessSound();
+                    
+                    showResult('success', 'Check-in Berhasil! ✓', 
+                        `<div class="guest-details">
+                            <p><strong>Nama:</strong> ${escapeHtml(response.data.guest.name)}</p>
+                            <p><strong>Kategori:</strong> ${escapeHtml(response.data.guest.category)}</p>
+                            <p><strong>Waktu:</strong> ${new Date().toLocaleString('id-ID')}</p>
+                        </div>`
+                    );
+                    
+                    // Resume scanning after delay
+                    setTimeout(() => {
+                        isProcessing = false;
+                        hideResult();
+                    }, 3000);
+                } else {
+                    throw new Error(response.error || 'Unknown error');
+                }
+            } catch (error) {
+                errorCount++;
+                document.getElementById('errorCount').textContent = errorCount;
+                
+                console.error("Scan error:", error);
+                showResult('error', 'Check-in Gagal ✗', 
+                    error.message || 'Terjadi kesalahan saat memproses QR code'
+                );
+                
+                // Resume scanning after delay
+                setTimeout(() => {
+                    isProcessing = false;
+                    hideResult();
+                }, 3000);
+            }
+        }
+        
+        // Handle scan error (not critical, usually happens continuously)
+        function onScanError(errorMessage) {
+            // Ignore common scanning errors
+            // console.log("Scan error:", errorMessage);
+        }
+        
+        // Show result message
+        function showResult(type, title, message) {
+            const resultDiv = document.getElementById('scanResult');
+            resultDiv.className = `scan-result ${type}`;
+            resultDiv.innerHTML = `
+                <h3>${title}</h3>
+                <p>${message}</p>
+            `;
+        }
+        
+        // Hide result message
+        function hideResult() {
+            const resultDiv = document.getElementById('scanResult');
+            resultDiv.style.display = 'none';
+        }
+        
+        // Play success sound (optional)
+        function playSuccessSound() {
+            try {
+                const audio = new Audio('data:audio/wav;base64,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');
+                audio.play().catch(e => console.log('Could not play sound:', e));
+            } catch (e) {
+                console.log('Could not play sound:', e);
+            }
+        }
+        
+        // Escape HTML to prevent XSS
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+        
+        // Start scanner on page load
+        window.addEventListener('DOMContentLoaded', initScanner);
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (html5QrCode) {
+                html5QrCode.stop().catch(err => console.error(err));
+            }
+        });
+    </script>
+</body>
+</html>

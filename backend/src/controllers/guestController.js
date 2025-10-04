@@ -66,6 +66,15 @@ export const createGuest = async (req, res) => {
     
     const guest = await Guest.create({ name, phone, category });
     
+    // Generate QR code for the new guest
+    try {
+      const { generateQRCodeForGuest } = await import('./qrController.js');
+      await generateQRCodeForGuest(guest.id, guest);
+    } catch (error) {
+      console.error('Error generating QR code for new guest:', error);
+      // Don't fail the request if QR generation fails
+    }
+    
     // Create audit log
     await AuditLog.create({
       entity_type: 'guest',

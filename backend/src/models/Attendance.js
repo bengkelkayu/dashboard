@@ -85,6 +85,19 @@ class Attendance {
     );
     return result.rows[0];
   }
+
+  static async checkTodayAttendance(guestId) {
+    const result = await query(
+      `SELECT * FROM guest_attendance 
+       WHERE guest_id = $1 
+         AND status = 'Presence'
+         AND DATE(check_in_time) = CURRENT_DATE
+       ORDER BY check_in_time DESC
+       LIMIT 1`,
+      [guestId]
+    );
+    return result.rows[0];
+  }
 }
 
 export default Attendance;

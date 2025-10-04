@@ -64,7 +64,7 @@ export const createAttendance = async (req, res) => {
   }
 };
 
-async function triggerThankYouMessage(guestId, guest) {
+export async function triggerThankYouMessage(guestId, guest) {
   try {
     // Get enabled template
     const templates = await ThankYouTemplate.findEnabled();
