@@ -26,8 +26,15 @@ Deploy otomatis dengan 1 klik via GitHub Actions dengan **schema verification** 
 - ✅ Detailed deployment status
 - ✅ Idempotent migrations (can run multiple times safely)
 
+**🔐 IMPORTANT: SSL/HTTPS for QR Scanner**
+- ⚠️ **QR Scanner requires HTTPS** to access camera (browser security requirement)
+- ✅ **Easy SSL Setup** via GitHub Actions - automated Let's Encrypt certificate
+- 📖 **Setup Guide**: [SSL_SETUP_GUIDE.md](SSL_SETUP_GUIDE.md)
+- 🎯 **Why needed**: Modern browsers block camera access on non-HTTPS sites
+
 **📖 Panduan lengkap:** 
 - [WORKFLOW_QUICK_START.md](WORKFLOW_QUICK_START.md) - **Quick start guide** ⚡
+- [SSL_SETUP_GUIDE.md](SSL_SETUP_GUIDE.md) - **SSL/HTTPS setup for QR Scanner** 🔐
 - [WORKFLOW_ENHANCEMENTS.md](WORKFLOW_ENHANCEMENTS.md) - Technical details
 - [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md) - Initial setup
 
@@ -90,6 +97,7 @@ Server akan berjalan di `http://localhost:3000`
 ### 📚 Dokumentasi
 
 - 🚀 [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md) - **GitHub Actions deployment (RECOMMENDED)**
+- 🔐 [SSL_SETUP_GUIDE.md](SSL_SETUP_GUIDE.md) - **SSL/HTTPS setup for QR Scanner**
 - 🚀 [INSTALL_VPS_ID.md](INSTALL_VPS_ID.md) - Panduan install VPS (Bahasa Indonesia)
 - 📖 [DEPLOYMENT_VPS.md](DEPLOYMENT_VPS.md) - VPS deployment guide
 - 🔧 [DEVELOPMENT.md](DEVELOPMENT.md) - Development guide
@@ -157,7 +165,22 @@ Server akan berjalan di `http://localhost:3000`
 - **Template Selection** - Pilih template pesan yang akan dikirim
 - **Auto Thank You** - Otomatis kirim pesan terima kasih saat tamu check-in
 
-### 9. Observability & Logging
+### 9. QR Code Scanner 📱
+- **Camera Access** - Akses kamera device untuk scan QR code
+- **Real-time Scanning** - Deteksi QR code secara real-time
+- **Auto Check-in** - Otomatis check-in tamu saat QR code di-scan
+- **Success/Error Feedback** - Visual feedback dengan animasi
+- **Statistics** - Tracking jumlah scan berhasil dan error
+- **⚠️ HTTPS Required** - Camera access memerlukan HTTPS/SSL untuk security
+
+### 10. SSL/HTTPS Support 🔐
+- **Automated SSL Setup** - Setup Let's Encrypt certificate via GitHub Actions
+- **Auto Renewal** - Certificate auto-renew sebelum expired
+- **Secure Context** - Enable camera access untuk QR scanner
+- **Production Ready** - Best practices SSL configuration
+- **📖 Setup Guide** - See [SSL_SETUP_GUIDE.md](SSL_SETUP_GUIDE.md)
+
+### 11. Observability & Logging
 - Audit log untuk semua perubahan data penting
 - HTTP request logging
 - Error tracking
