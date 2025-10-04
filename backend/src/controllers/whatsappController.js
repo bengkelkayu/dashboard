@@ -183,27 +183,49 @@ export async function sendInvitationWithQR(req, res) {
     let qrData;
     
     if (guest.qr_code_url && guest.qr_code_token) {
+      console.log(`Using existing QR code for guest ${guest.name} (${guestId})`);
       qrData = {
         qrCode: guest.qr_code_url,
         token: guest.qr_code_token
       };
     } else {
-      qrData = await generateQRCodeForGuest(guestId, guest);
+      console.log(`Generating new QR code for guest ${guest.name} (${guestId})`);
+      try {
+        qrData = await generateQRCodeForGuest(guestId, guest);
+        console.log(`✓ QR code generated successfully for guest ${guest.name}`);
+      } catch (qrError) {
+        console.error(`✗ Failed to generate QR code for guest ${guest.name}:`, qrError);
+        throw new Error(`Failed to generate QR code: ${qrError.message}`);
+      }
     }
 
-    // Prepare message
-    let message = customMessage || `Halo ${guest.name}! 🎉\n\nBerikut adalah QR Code untuk absensi acara kami.`;
+    // Prepare invitation message with QR code
+    let message;
     
-    if (guest.invitation_link) {
-      message += `\n\nUndangan digital: ${guest.invitation_link}`;
+    if (customMessage) {
+      message = customMessage;
+    } else {
+      // Build invitation message
+      message = `Halo ${guest.name}! 🎉\n\nKami mengundang Anda untuk hadir di acara pernikahan kami.`;
+      
+      if (guest.invitation_link) {
+        message += `\n\nUndangan digital: ${guest.invitation_link}`;
+      }
+      
+      message += `\n\nTerlampir QR Code untuk absensi. Silakan tunjukkan QR Code ini saat check-in di acara.\n\nDitunggu kehadirannya! 🙏`;
     }
-    
-    message += `\n\nSilakan tunjukkan QR Code ini saat check-in.\nTerima kasih! 🙏`;
 
     // Send message with QR code image
-    await whatsappService.sendMessageWithImage(guest.phone, message, qrData.qrCode);
+    console.log(`Sending invitation with QR code to ${guest.name} (${guest.phone})`);
+    try {
+      await whatsappService.sendMessageWithImage(guest.phone, message, qrData.qrCode);
+      console.log(`✓ Invitation with QR code sent successfully to ${guest.name}`);
+    } catch (sendError) {
+      console.error(`✗ Failed to send WhatsApp message to ${guest.name}:`, sendError);
+      throw new Error(`Failed to send WhatsApp message: ${sendError.message}`);
+    }
 
-    // Log to outbox
+    // Log to outbox (Note: Using ThankYouOutbox table for message logging)
     await ThankYouOutbox.create({
       guest_id: guestId,
       template_id: null,
@@ -228,9 +250,14 @@ export async function sendInvitationWithQR(req, res) {
     });
   } catch (error) {
     console.error('Error sending invitation with QR code:', error);
+    console.error('Error details:', {
+      guestId: req.params.guestId,
+      errorMessage: error.message,
+      errorStack: error.stack
+    });
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message || 'Failed to send invitation with QR code'
     });
   }
 }
